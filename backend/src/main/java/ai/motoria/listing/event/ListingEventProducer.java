@@ -18,6 +18,7 @@ public class ListingEventProducer {
         eventPublisher.publish(
                 EventType.LISTING_CREATED,
                 MODULE,
+                listing.getId(),
                 new ListingCreatedPayload(
                         listing.getId(),
                         listing.getSellerId(),
@@ -30,6 +31,7 @@ public class ListingEventProducer {
         eventPublisher.publish(
                 EventType.LISTING_UPDATED,
                 MODULE,
+                listing.getId(),
                 new ListingStatusPayload(listing.getId(), listing.getStatus()));
     }
 
@@ -37,6 +39,7 @@ public class ListingEventProducer {
         eventPublisher.publish(
                 EventType.LISTING_PUBLISHED,
                 MODULE,
+                listing.getId(),
                 new ListingStatusPayload(listing.getId(), listing.getStatus()));
     }
 
@@ -44,6 +47,7 @@ public class ListingEventProducer {
         eventPublisher.publish(
                 EventType.LISTING_SOLD,
                 MODULE,
+                listing.getId(),
                 new ListingStatusPayload(listing.getId(), listing.getStatus()));
     }
 
@@ -51,6 +55,7 @@ public class ListingEventProducer {
         eventPublisher.publish(
                 EventType.LISTING_CERTIFICATION_REQUESTED,
                 MODULE,
+                listing.getId(),
                 new ListingStatusPayload(listing.getId(), listing.getStatus()));
     }
 }

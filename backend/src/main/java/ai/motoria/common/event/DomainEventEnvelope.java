@@ -20,4 +20,14 @@ public record DomainEventEnvelope<T>(
                 0,
                 payload);
     }
+
+    public static <T> DomainEventEnvelope<T> restore(
+            UUID correlationId,
+            String eventType,
+            String sourceModule,
+            Instant timestamp,
+            int retryCount,
+            T payload) {
+        return new DomainEventEnvelope<>(correlationId, eventType, sourceModule, timestamp, retryCount, payload);
+    }
 }
