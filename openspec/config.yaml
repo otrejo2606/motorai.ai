@@ -1,0 +1,33 @@
+schema: spec-driven
+
+context: |
+  Proyecto: Motoria.ai, portal transaccional de compraventa de vehículos usados con IA.
+  Mercado inicial: Costa Rica (rival directo Crautos); referencia de experiencia: Kavak México.
+  Modelo: marketplace con transacción completa, sin compra de inventario propio (fase futura opcional).
+  Propuesta de valor: de la placa al traspaso en un solo lugar: ficha por placa desde el Registro Nacional,
+  inspección por IA tipo peritaje de seguro, red de aliados (autolavados y talleres) para fotos certificadas,
+  comparador del mismo rango, cotización de seguros con varias aseguradoras vía NEXUS Broker (corredora
+  licenciada SUGESE), traspaso notarial digital con firma digital BCCR y precalificación de crédito para bancos.
+  Stack: Java 17 (maven.compiler.release del pom) + Quarkus, React + TypeScript (portal cliente, admin y backoffice), PostgreSQL, RabbitMQ con
+  outbox transaccional, Redis, almacenamiento S3, WSO2 Identity Server y WSO2 API Manager.
+  Principios: arquitectura limpia por módulo de dominio (domain, dto, repository, service, rest, mapper,
+  integration, event, exception), integraciones externas aisladas detrás de puertos, "IA sugiere, humano decide",
+  decisiones de IA trazables, auditables y explicables, nada en código duro (tarifas, aseguradoras, reglas en
+  configuración), multi-país desde el diseño (código de país en cada dato regulado), i18n español e inglés.
+  Normativa CR: Ley 8968 (protección de datos, PRODHAB), Ley 8454 (firma digital), Código Notarial (Ley 7764),
+  Ley 7472 (consumidor), Ley 8653 (mercado de seguros, SUGESE), normativa SUGEF de crédito, Ley 7786 (LC/FT),
+  OWASP Top 10 2021 y OWASP LLM Top 10 2025.
+
+rules:
+  proposal:
+    - Redacta en español.
+    - Indica qué capacidad del roadmap (design.md de define-plataforma-motoria) implementa el change.
+    - Señala como "por verificar" todo supuesto sobre APIs, trámites o normativa de terceros no confirmado con documento.
+  specs:
+    - 'Redacta requirements en español; cada requirement DEBE contener el token normativo literal SHALL o MUST. Convención: iniciar con "El sistema DEBE (SHALL) ..." o, para prohibiciones, "El sistema NO DEBE (MUST NOT) ...".'
+    - Los estados y códigos de enumeración se escriben en inglés, como en el código.
+    - 'Cada requirement DEBE tener al menos un escenario con encabezado de 4 almohadillas y líneas WHEN/THEN en negrita.'
+  tasks:
+    - Agrupa tareas por fase y por módulo de backend o portal; marca dependencias.
+    - Marca (A) tarea de agente, (B) puerta del dueño (contrato, convenio, decisión legal), (C) calendario no acelerable.
+    - Una marca [x] significa "escrito", nunca "compilado ni probado"; eso lo confirma el CI.
