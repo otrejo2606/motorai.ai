@@ -1,17 +1,27 @@
 package ai.motoria.listing.dto;
 
-import ai.motoria.listing.domain.ListingCategory;
 import ai.motoria.common.domain.ListingStatus;
+import ai.motoria.listing.domain.Province;
+import ai.motoria.listing.domain.TrustLevel;
 
 import java.math.BigDecimal;
 import java.util.UUID;
 
+/**
+ * ListingSummary (design D9.1 item 4).
+ */
 public record ListingSummaryResponse(
         UUID id,
-        String title,
         ListingStatus status,
-        ListingCategory category,
+        String title,
         BigDecimal price,
+        String currency,
         Integer modelYear,
-        Integer mileage) {
+        Integer mileage,
+        String brand,
+        String model,
+        Province province,
+        TrustLevel trustLevel,
+        String coverPhotoUrl,
+        UUID vehicleId) {
 }

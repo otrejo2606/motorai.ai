@@ -36,7 +36,7 @@ class NotificationEventConsumerTest {
                   "payload": {
                     "listingId": "%s",
                     "sellerId": "%s",
-                    "vehicleSpecId": "%s",
+                    "vehicleId": "%s",
                     "status": "DRAFT",
                     "price": 21000
                   }

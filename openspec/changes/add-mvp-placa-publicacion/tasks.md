@@ -1,6 +1,6 @@
 # Tasks
 
-Fase F1. Marcas: (A) agente, (B) puerta del dueño, (C) calendario. Una marca [x] significa "escrito", nunca "compilado ni probado". Migraciones reservadas: **V1 a V19**. Todo depende de la aprobación de `define-plataforma-motoria` (tarea 0.5 de la base).
+Fase F1. Marcas: (A) agente, (B) puerta del dueño, (C) calendario. Una marca [x] significa "escrito", nunca "compilado ni probado". Migraciones reservadas: **V1 a V19**. La base `define-plataforma-motoria` quedó aprobada el 2026-11-21 (su tarea 0.5).
 
 ## 0. Puertas
 
@@ -9,63 +9,67 @@ Fase F1. Marcas: (A) agente, (B) puerta del dueño, (C) calendario. Una marca [x
 - [ ] 0.3 (B) Entregar 20 informes registrales reales de rnpdigital.com enmascarados para el conjunto de prueba.
 - [ ] 0.4 (B) Copia de la base actual para probar la línea base de V1.
 - [ ] 0.5 (B) Tarifa del informe obtenido por Motoria.
+- [ ] 0.6 (B) Keycloak: realm `motoria`, clientes `motoria-backend` (confidencial), `motoria-portal-cliente` y `motoria-backoffice` (públicos con PKCE), roles de realm (`BUYER`, `SELLER`, `DEALER`, `BACKOFFICE`, `ADMIN` y los de fases siguientes), `SELLER` como rol por defecto de las cuentas nuevas, registro de usuarios activo y tema de Motoria. Nada de esto está en el repositorio: es configuración del servidor.
+- [ ] 0.7 (B) Apache APISIX: rutas hacia el backend, TLS, `openid-connect` contra el realm, límite de peticiones y reescritura de `X-Forwarded-For`. Configuración de infraestructura, fuera del repositorio.
 
 ## 1. Plataforma base (`common`, configuración)
 
-- [ ] 1.1 (A) Agregar `quarkus-flyway`; `generation=none`; `migrate-at-start` y `baseline-on-migrate`.
-- [ ] 1.2 (A) V1 línea base de `listing.listing` y `outbox_event` (esquema por defecto) con `IF NOT EXISTS`, idéntica al mapeo actual (depende de 1.1).
-- [ ] 1.3 (A) Llenado de columnas de auditoría desde el sujeto autenticado.
-- [ ] 1.4 (A) Códigos de error estables en `ErrorResponse` para el frontend.
-- [ ] 1.5 (A) Eventos `vehicle.registry.requested`, `vehicle.registry.completed` y `vehicle.registry.review.required` en `EventType`, con cola, reintento y DLQ en `application.properties`.
+Rutas de evidencia relativas a `backend/src/main/java/ai/motoria/` (código), `backend/src/main/resources/` (migraciones y configuración) y `backend/src/test/java/ai/motoria/` (pruebas).
+
+- [x] 1.1 (A) Agregar `quarkus-flyway`; `generation=none`; `migrate-at-start` y `baseline-on-migrate`. Evidencia: `backend/pom.xml` (`quarkus-flyway`, `flyway-database-postgresql`), `application.properties` (`generation=none`, `quarkus.flyway.*`), perfil de test sin Flyway en `backend/src/test/resources/application.properties`.
+- [x] 1.2 (A) V1 línea base de `listing.listing` y `outbox_event` (esquema por defecto) con `IF NOT EXISTS`, idéntica al mapeo actual (depende de 1.1). Evidencia: `db/migration/V1__linea_base.sql` (nombres en minúscula que generó Hibernate; ver design D10).
+- [x] 1.3 (A) Llenado de columnas de auditoría desde el sujeto autenticado. Evidencia: `common/persistence/AuditableEntity.java`, `common/persistence/AuditSubject.java`; `listing/domain/Listing.java` (`created_by`, `updated_by`).
+- [x] 1.4 (A) Códigos de error estables en `ErrorResponse` para el frontend. Evidencia: `common/exception/MotoriaException.java` y subclases (`BusinessRuleException`, `InvalidRequestException`, `QuotaExceededException`, `DependencyUnavailableException`, `NotFoundException`, `InvalidStateException`, `ForbiddenOperationException`), `ErrorResponse.java` (`details`), `GlobalExceptionMapper.java`; códigos por módulo en `*/exception/*ErrorCodes.java`.
+- [x] 1.5 (A) Eventos `vehicle.registry.requested`, `vehicle.registry.completed` y `vehicle.registry.review.required` en `EventType`, con cola, reintento y DLQ en `application.properties`. Evidencia: `common/event/EventType.java`; colas `vehicle-registry-requested-in`, `listing-vehicle-registry-completed-in`, `notification-vehicle-registry-events-in` con DLQ en `application.properties`; consumidores `vehicle/event/VehicleRegistryEventConsumer.java`, `listing/event/ListingVehicleRegistryConsumer.java`, `notification/event/NotificationEventConsumer.java`. Reintento: el outbox reintenta la publicación y el consumidor de extracción absorbe los fallos del modelo (`EXTRACTION_FAILED`); SmallRye RabbitMQ no trae reintento propio, lo que falle va a la DLQ.
 
 ## 2. `user`
 
-- [ ] 2.1 (A) V2: `user_profile` y `consent`.
-- [ ] 2.2 (A) Perfil con cédula cifrada en reposo y hash para comparar con el propietario registral.
-- [ ] 2.3 (A) Consentimientos versionados y revocables; textos en i18n.
-- [ ] 2.4 (A) `IdentityVerificationPort` con adaptador manual (documento, selfie con código de un solo uso, aprobación del analista y cupo diario; design D1) y niveles de identidad.
+- [x] 2.1 (A) V2: `user_profile` y `consent`. Evidencia: `db/migration/V2__usr.sql` (esquema `usr`, también `identity_verification`).
+- [x] 2.2 (A) Perfil con cédula cifrada en reposo y hash para comparar con el propietario registral. Evidencia: `user/domain/UserProfile.java`, `user/service/IdNumberCipher.java`, `common/security/IdNumberHasher.java`, `user/service/UserProfileService.java`, `user/rest/ProfileResource.java`, `user/service/UserIdentityQueryService.java`.
+- [x] 2.3 (A) Consentimientos versionados y revocables; textos en i18n. Evidencia: `user/domain/Consent.java`, `ConsentLedger.java`, `user/service/ConsentService.java` (`currentTextVersion` desde `motoria.consent.text-version`), `user/rest/ConsentResource.java`. Los textos viven en el i18n del frontend.
+- [x] 2.4 (A) `IdentityVerificationPort` con adaptador manual (documento, selfie con código de un solo uso, aprobación del analista y cupo diario; design D1) y niveles de identidad. Evidencia: `user/integration/IdentityVerificationPort.java`, `ManualIdentityVerificationAdapter.java`, `user/domain/IdentityVerification.java`, `IdentityLevel.java`, `user/service/IdentityVerificationService.java`, `user/rest/IdentityVerificationResource.java`, `BackofficeIdentityVerificationResource.java`.
 
 ## 3. `media`
 
-- [ ] 3.1 (A) V3: `media_object` y `photo_protocol_slot` con la semilla del protocolo.
-- [ ] 3.2 (A) URL prefirmada de subida, confirmación con verificación de firma de contenido, tamaño y sha256 (depende de 0.2).
-- [ ] 3.3 (A) Copia pública sin EXIF; lectura privada con URL de corta duración y auditoría.
-- [ ] 3.4 (A) Validación de calidad básica de fotos (resolución mínima) y protocolo completo.
+- [x] 3.1 (A) V3: `media_object` y `photo_protocol_slot` con la semilla del protocolo. Evidencia: `db/migration/V3__media.sql` (más `media_access_log`), `media/domain/*`.
+- [x] 3.2 (A) URL prefirmada de subida, confirmación con verificación de firma de contenido, tamaño y sha256 (depende de 0.2). Evidencia: `media/integration/ObjectStoragePort.java`, `S3ObjectStorageAdapter.java`, `media/service/MediaUploadService.java`, `ContentSignatureVerifier.java`, `MediaPolicy.java`, `media/rest/MediaResource.java`. Falta la puerta 0.2 (bucket y credenciales).
+- [x] 3.3 (A) Copia pública sin EXIF; lectura privada con URL de corta duración y auditoría. Evidencia: `media/service/ImageSanitizer.java`, `ExifReader.java`, `MediaAccessService.java`, `MediaPortAdapter.java`, `media/domain/MediaAccessLog.java`.
+- [x] 3.4 (A) Validación de calidad básica de fotos (resolución mínima) y protocolo completo. Evidencia: `media/service/MediaPolicy.java` (`meetsMinimumResolution`), `MediaUploadService.java`; protocolo completo en `listing/domain/ListingPublicationPolicy.java` y `listing/service/ListingPublicationGuard.java`.
 
 ## 4. `ai`
 
-- [ ] 4.1 (A) V5: `ai_inference`.
-- [ ] 4.2 (A) `LlmPort` y adaptador del proveedor elegido; configuración sin llaves en el repo (depende de 0.1).
-- [ ] 4.3 (A) Caso `REGISTRY_EXTRACTION`: esquema de salida, cita por página, validación y descarte, defensa contra instrucciones en el documento.
-- [ ] 4.4 (A) Caso `LISTING_COPY`: título y descripción solo con datos de la ficha y del vendedor.
-- [ ] 4.5 (A) Medición de precisión por campo con el conjunto de prueba (depende de 0.3).
+- [x] 4.1 (A) V5: `ai_inference`. Evidencia: `db/migration/V5__ai.sql`, `ai/domain/AiInference.java`, `ai/service/AiInferenceRecorder.java`.
+- [x] 4.2 (A) `LlmPort` y adaptador del proveedor elegido; configuración sin llaves en el repo (depende de 0.1). Evidencia: `ai/integration/LlmPort.java`, `HttpLlmAdapter.java` (genérico), `StubLlmAdapter.java`, `LlmPortProducer.java`, `application.properties` (`motoria.ai.*` por variables de entorno). Falta la puerta 0.1 (proveedor y llave).
+- [x] 4.3 (A) Caso `REGISTRY_EXTRACTION`: esquema de salida, cita por página, validación y descarte, defensa contra instrucciones en el documento. Evidencia: `ai/service/RegistryExtractionService.java`, `RegistryExtractionValidator.java`, `AiPrompts.java`, `ai/integration/PdfTextExtractor.java`.
+- [x] 4.4 (A) Caso `LISTING_COPY`: título y descripción solo con datos de la ficha y del vendedor. Evidencia: `ai/service/ListingCopyService.java`, `listing/service/ListingCopyAssistService.java`, `POST /listings/{id}/copy-suggestions` en `listing/rest/ListingResource.java`.
+- [ ] 4.5 (A) Medición de precisión por campo con el conjunto de prueba (depende de 0.3). Pendiente: requiere los 20 informes enmascarados de la puerta 0.3; mientras tanto `motoria.vehicle.registry.auto-approve-enabled=false`.
 
 ## 5. `vehicle`
 
-- [ ] 5.1 (A) V4: `vehicle`, `vehicle_attribute`, `registry_encumbrance`, `registry_discrepancy` (depende de 3.1).
-- [ ] 5.2 (A) Normalización y validación de placa por país (formatos en configuración).
-- [ ] 5.3 (A) `RegistroNacionalPort` y `RegistroDocumentoAdapter`; flujo de estados y eventos.
-- [ ] 5.4 (A) Reglas de bloqueo por gravámenes y comparación de titularidad.
-- [ ] 5.5 (A) Solicitud "que Motoria lo obtenga" con tarea en el backoffice (depende de 0.5).
+- [x] 5.1 (A) V4: `vehicle`, `vehicle_attribute`, `registry_encumbrance`, `registry_discrepancy` (depende de 3.1). Evidencia: `db/migration/V4__vehicle.sql` (más `registry_request`), `vehicle/domain/*`. Índice único parcial de solicitud abierta en `db/migration/V7__unicos_parciales.sql`.
+- [x] 5.2 (A) Normalización y validación de placa por país (formatos en configuración). Evidencia: `vehicle/service/PlateNormalizer.java`, `motoria.vehicle.plate-pattern.CR` en `application.properties`.
+- [x] 5.3 (A) `RegistroNacionalPort` y `RegistroDocumentoAdapter`; flujo de estados y eventos. Evidencia: `vehicle/integration/RegistroNacionalPort.java`, `RegistroDocumentoAdapter.java`, `vehicle/domain/Vehicle.java`, `RegistryReviewPolicy.java`, `vehicle/service/VehicleService.java`, `RegistryProcessingService.java`, `RegistryExtractionApplier.java`, `RegistryReviewService.java`, `vehicle/event/VehicleEventProducer.java`, `vehicle/rest/VehicleResource.java`, `RegistryReviewResource.java`.
+- [x] 5.4 (A) Reglas de bloqueo por gravámenes y comparación de titularidad. Evidencia: `vehicle/domain/TransferBlockPolicy.java`, `OwnershipPolicy.java`, `vehicle/service/VehicleRegistryPortAdapter.java`.
+- [x] 5.5 (A) Solicitud "que Motoria lo obtenga" con tarea en el backoffice (depende de 0.5). Evidencia: `vehicle/domain/RegistryRequest.java`, `vehicle/service/RegistryRequestService.java`, `vehicle/rest/RegistryRequestBackofficeResource.java`, `registryRequestFee` en `vehicle/dto/VehicleResponse.java`. Falta la puerta 0.5 (tarifa en `MOTORIA_REGISTRY_REQUEST_FEE`); el cobro no está en F1.
 
 ## 6. `listing`
 
-- [ ] 6.1 (A) V6: `vehicle_id`, `province`, `transmission`, `trust_level` y datos declarados; migrar `vehicle_spec_id`.
-- [ ] 6.2 (A) Creación prellenada desde el `Vehicle` y registro de discrepancias declarado frente a registro.
-- [ ] 6.3 (A) Publicación solo con `REGISTRY_VERIFIED`, identidad nivel 2 y fotos obligatorias.
-- [ ] 6.4 (A) Filtros de búsqueda nuevos y orden.
-- [ ] 6.5 (A) Ajustar `ListingResource`, mapper, DTO y pruebas existentes al nuevo modelo.
+- [x] 6.1 (A) V6: `vehicle_id`, `province`, `transmission`, `trust_level` y datos declarados; migrar `vehicle_spec_id`. Evidencia: `db/migration/V6__listing_vehiculo.sql` (más `brand`, `model`, `fuel`, `country_code`, `currency`, `published_at`, auditoría y `listing_photo`); `db/migration/V7__unicos_parciales.sql` (un anuncio activo por vendedor y vehículo). Alta concurrente (design D10): `common/persistence/UniqueViolations.java`, `vehicle/service/VehicleCreator.java`, `user/service/UserProfileCreator.java`, traducción de violaciones en `ListingPersistenceService.java`, `ListingPhotoService.java`, `RegistryRequestService.java`, `media/service/PhotoProtocolService.java`, `MediaPortAdapter.java`.
+- [ ] 6.2 (A) Creación prellenada desde el `Vehicle` y registro de discrepancias declarado frente a registro. Hecho: creación prellenada (`listing/service/ListingPersistenceService.java`) y tabla, entidad y repositorio de discrepancias (`vehicle/domain/RegistryDiscrepancy.java`, `vehicle/repository/RegistryDiscrepancyRepository.java`). Falta: el contrato D9 no deja declarar ningún dato que exista en el registro (año, color o cilindrada son de solo lectura), así que en F1 no se genera ninguna discrepancia; hay que definir qué campo declarado se compara.
+- [x] 6.3 (A) Publicación solo con `REGISTRY_VERIFIED`, identidad nivel 2 y fotos obligatorias. Evidencia: `listing/domain/ListingPublicationPolicy.java`, `listing/service/ListingPublicationGuard.java`, `ListingService.java` (`submitForReview`, `publish`), `ListingPhotoService.java`.
+- [x] 6.4 (A) Filtros de búsqueda nuevos y orden. Evidencia: `listing/dto/ListingSearchRequest.java`, `listing/domain/ListingFilter.java`, `ListingSort.java`, `listing/repository/ListingRepository.java`, `listing/service/ListingSearchService.java` (público, solo `PUBLISHED`, página desde 0).
+- [x] 6.5 (A) Ajustar `ListingResource`, mapper, DTO y pruebas existentes al nuevo modelo. Evidencia: `listing/rest/ListingResource.java`, `MyListingsResource.java`, `BackofficeListingResource.java`, `listing/mapper/ListingMapper.java`, `listing/dto/*`, `listing/domain/Listing.java`, `ListingPhoto.java`; pruebas `listing/domain/ListingTest.java`, `listing/rest/ListingResourceTest.java`, `listing/service/ListingServiceTest.java`, `notification/event/NotificationEventConsumerTest.java`.
 
 ## 7. Frontend
 
-- [ ] 7.1 (A) Monorepo `frontend/` (Vite, React, TypeScript, React Hook Form, TanStack Query, react-i18next) con paquete `ui`.
-- [ ] 7.2 (A) Portal cliente: búsqueda, ficha del anuncio con verificado y declarado, flujo vender y mis anuncios.
-- [ ] 7.3 (A) Backoffice: bandeja de informes registrales, bandeja de anuncios, verificación manual de identidad, edición del protocolo de fotos.
-- [ ] 7.4 (A) Archivos de traducción español e inglés con las mismas claves.
+- [x] 7.1 (A) Monorepo `frontend/` (Vite, React, TypeScript, React Hook Form, TanStack Query, react-i18next) con paquete `ui`. Evidencia: `frontend/package.json` (workspaces), `frontend/tsconfig.base.json`, `frontend/.gitignore`, `frontend/packages/ui/src/*` (componentes, `auth.tsx` con Keycloak por OIDC y token solo en memoria, `styles.css`), `frontend/packages/api/src/*` (tipos alineados con los DTO del backend y D9.1: páginas `{items, page, size, total}` desde 0 en toda lista, enumeraciones exactas, `ErrorResponse.details`; carga en dos pasos de D5 en `upload.ts`, fotos de anuncio solo JPEG y PNG; hooks TanStack Query en `hooks.ts`), `frontend/packages/i18n/src/index.ts`; por app `package.json`, `tsconfig.json`, `vite.config.ts`, `index.html`, `.env.example`.
+- [x] 7.2 (A) Portal cliente: búsqueda, ficha del anuncio con verificado y declarado, flujo vender y mis anuncios. Evidencia: `frontend/apps/portal-cliente/src/pages/HomePage.tsx`, `ListingDetailPage.tsx`, `sell/SellPage.tsx` y pasos `sell/PlateStep.tsx`, `RegistryStep.tsx`, `RegistryStatusStep.tsx`, `VehicleReviewStep.tsx`, `DeclaredDataStep.tsx`, `PhotosStep.tsx`, `SubmitStep.tsx`, `MyListingsPage.tsx`, `ProfilePage.tsx`, `ConsentsPage.tsx`, `IdentityPage.tsx`, `App.tsx` (rutas por rol). Alineado con D9.1 y D10: tarifa desde `Vehicle.registryRequestFee` (se envía su monto como `acceptedFee`), borradores y fotos ya subidas desde `GET /listings/{id}` del dueño, título y descripción opcionales en borrador, `copy-suggestions?language=` con el idioma activo, versión de consentimientos desde `currentTextVersion`, titularidad (`ownerMatch`) y gravámenes como aviso, y errores de publicación con sus `details` (reglas y tomas faltantes) traducidos.
+- [x] 7.3 (A) Backoffice: bandeja de informes registrales, bandeja de anuncios, verificación manual de identidad, edición del protocolo de fotos. Evidencia: `frontend/apps/backoffice/src/pages/RegistryReviewsPage.tsx`, `RegistryReviewDetailPage.tsx`, `RegistryRequestsPage.tsx`, `IdentityVerificationsPage.tsx`, `ListingsQueuePage.tsx`, `PhotoProtocolPage.tsx` (solo `ADMIN`), `components/RejectForm.tsx`, `components/PrivateImage.tsx`, `pages/params.ts`, `App.tsx` (rutas por rol). Filtros por defecto: revisión registral `REGISTRY_IN_REVIEW` (estados de `VehicleStatus`), solicitudes `PENDING`, identidad `SUBMITTED`, anuncios `PENDING_REVIEW`; todas paginadas.
+- [x] 7.4 (A) Archivos de traducción español e inglés con las mismas claves. Evidencia: `frontend/packages/i18n/src/locales/es.ts` y `en.ts` (`en` tipado con `LocaleShape<typeof es>`: una clave faltante o sobrante no compila); códigos de error en `errors.CODIGO`, con texto para todos los códigos que define el backend (incluido `LISTING_SELLER_NOT_OWNER`) y para cada valor de enumeración visible.
 
 ## 8. Pruebas (las ejecuta el CI)
 
-- [ ] 8.1 (A) Unitarias de dominio: estados de `Vehicle`, bloqueos, titularidad, consentimientos.
-- [ ] 8.2 (A) De servicio con el puerto de IA simulado: cita obligatoria, placa distinta, umbral.
-- [ ] 8.3 (A) De REST: roles y propiedad en cada endpoint nuevo.
-- [ ] 8.4 (A) De carga: firma de contenido falsa y tamaño excedido.
+- [x] 8.1 (A) Unitarias de dominio: estados de `Vehicle`, bloqueos, titularidad, consentimientos. Evidencia (escritas, no ejecutadas): `vehicle/domain/VehicleTest.java`, `OwnershipPolicyTest.java`, `RegistryReviewPolicyTest.java`, `vehicle/service/PlateNormalizerTest.java`, `user/domain/ConsentLedgerTest.java`, `IdentityVerificationTest.java`, `user/service/IdNumberCipherTest.java`, `listing/domain/ListingPublicationPolicyTest.java`, `ListingTest.java`; alta concurrente: `common/persistence/UniqueViolationsTest.java`, `vehicle/service/VehicleCreationRaceTest.java`, `user/service/UserProfileCreationRaceTest.java`.
+- [x] 8.2 (A) De servicio con el puerto de IA simulado: cita obligatoria, placa distinta, umbral. Evidencia (escritas, no ejecutadas): `ai/service/RegistryExtractionServiceTest.java` (cita obligatoria, instrucciones dentro del PDF, hash de la cédula, modelo caído, salida no JSON), `vehicle/service/RegistryExtractionApplierTest.java` (placa distinta, umbral, aprobación automática apagada y encendida).
+- [x] 8.3 (A) De REST: roles y propiedad en cada endpoint nuevo. Evidencia (escritas, no ejecutadas): `listing/rest/ListingResourceTest.java`, `vehicle/rest/VehicleResourceTest.java`, `media/rest/MediaResourceTest.java`, `user/rest/UserResourcesTest.java`. La propiedad se decide en los servicios; las pruebas REST simulan el rechazo y comprueban el código.
+- [x] 8.4 (A) De carga: firma de contenido falsa y tamaño excedido. Evidencia (escritas, no ejecutadas): `media/service/MediaUploadServiceTest.java`, `ContentSignatureVerifierTest.java`.

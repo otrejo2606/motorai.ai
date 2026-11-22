@@ -3,7 +3,9 @@ package ai.motoria.notification.event;
 import ai.motoria.common.event.DomainEventEnvelope;
 import ai.motoria.common.event.EventType;
 import ai.motoria.notification.dto.ListingNotificationCommand;
+import ai.motoria.notification.dto.VehicleRegistryNotificationCommand;
 import ai.motoria.notification.service.NotificationService;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -55,6 +57,27 @@ public class NotificationEventConsumer {
         notificationService.handleListingEvent(command);
     }
 
+    /**
+     * Vehicle registry events: review.required (backoffice tray) and completed (seller can continue).
+     */
+    @Incoming("notification-vehicle-registry-events-in")
+    @Blocking
+    public void onVehicleRegistryEvent(String rawEvent) {
+        DomainEventEnvelope<JsonNode> envelope = readEnvelope(rawEvent);
+        EventType eventType = EventType.fromRoutingKey(envelope.eventType()).orElse(null);
+        if (eventType != EventType.VEHICLE_REGISTRY_REVIEW_REQUIRED && eventType != EventType.VEHICLE_REGISTRY_COMPLETED) {
+            Log.warnf("Ignoring unsupported vehicle notification event type %s", envelope.eventType());
+            return;
+        }
+        VehicleRegistryPayload payload = convertPayload(envelope.payload(), VehicleRegistryPayload.class);
+        notificationService.handleVehicleRegistryEvent(new VehicleRegistryNotificationCommand(
+                eventType,
+                envelope.correlationId(),
+                payload.vehicleId(),
+                payload.reason(),
+                payload.status()));
+    }
+
     private DomainEventEnvelope<JsonNode> readEnvelope(String rawEvent) {
         try {
             return objectMapper.readValue(rawEvent, new TypeReference<>() {
@@ -96,14 +119,23 @@ public class NotificationEventConsumer {
         }
     }
 
+    @JsonIgnoreProperties(ignoreUnknown = true)
     private record ListingCreatedPayload(
             UUID listingId,
             UUID sellerId,
-            UUID vehicleSpecId,
+            UUID vehicleId,
             String status,
             BigDecimal price) {
     }
 
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    private record VehicleRegistryPayload(
+            UUID vehicleId,
+            String reason,
+            String status) {
+    }
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
     private record ListingStatusPayload(
             UUID listingId,
             String status) {

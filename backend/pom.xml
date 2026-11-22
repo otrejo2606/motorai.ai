@@ -22,6 +22,8 @@
         <mapstruct.version>1.5.5.Final</mapstruct.version>
         <owasp.html.sanitizer.version>20240325.1</owasp.html.sanitizer.version>
         <mockito.junit.jupiter.version>5.3.1</mockito.junit.jupiter.version>
+        <aws.sdk.version>2.28.29</aws.sdk.version>
+        <pdfbox.version>3.0.3</pdfbox.version>
     </properties>
 
     <dependencyManagement>
@@ -88,6 +90,41 @@
         <dependency>
             <groupId>io.quarkus</groupId>
             <artifactId>quarkus-scheduler</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-flyway</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-database-postgresql</artifactId>
+        </dependency>
+        <!-- S3: AWS SDK v2 with the URL connection HTTP client (avoids pulling Netty/Apache next to Vert.x). -->
+        <dependency>
+            <groupId>software.amazon.awssdk</groupId>
+            <artifactId>s3</artifactId>
+            <version>${aws.sdk.version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>software.amazon.awssdk</groupId>
+                    <artifactId>netty-nio-client</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>software.amazon.awssdk</groupId>
+                    <artifactId>apache-client</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>software.amazon.awssdk</groupId>
+            <artifactId>url-connection-client</artifactId>
+            <version>${aws.sdk.version}</version>
+        </dependency>
+        <!-- PDF text extraction (ai) and page rendering for the analyst view (media). -->
+        <dependency>
+            <groupId>org.apache.pdfbox</groupId>
+            <artifactId>pdfbox</artifactId>
+            <version>${pdfbox.version}</version>
         </dependency>
         <dependency>
             <groupId>org.mapstruct</groupId>

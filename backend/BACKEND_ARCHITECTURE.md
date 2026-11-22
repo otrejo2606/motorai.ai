@@ -1,7 +1,7 @@
 # Motoria.ai — Backend Architecture
 
 > Principal Architect Output
-> Stack: Quarkus · PostgreSQL · RabbitMQ · Redis · S3 · WSO2
+> Stack: Quarkus · PostgreSQL · RabbitMQ · Redis · S3 · Keycloak · Apache APISIX
 
 ---
 
@@ -151,7 +151,7 @@ ai.motoria.vehicle/
 
 ### 4.3 `user`
 
-User accounts, profiles, roles. Identity delegated to WSO2 Identity Server. Local mirror stores profile extensions.
+User accounts, profiles, roles. Identity delegated to Keycloak (OIDC). Local mirror stores profile extensions.
 
 **Roles:** `BUYER`, `SELLER`, `PARTNER`, `BACKOFFICE`, `ADMIN`
 
@@ -175,7 +175,7 @@ ai.motoria.user/
 ├── mapper/
 │   └── UserProfileMapper.java
 ├── integration/
-│   └── Wso2IdentityIntegration.java  (SCIM2 / token introspection)
+│   └── IdentityVerificationPort.java  (manual adapter in F1; Keycloak handles login)
 ├── event/
 │   └── UserEventConsumer.java
 └── exception/
@@ -509,7 +509,7 @@ ai.motoria.subscription/
 ├── mapper/
 │   └── SubscriptionMapper.java
 ├── integration/
-│   └── Wso2ApiManagerIntegration.java   (application/subscription sync)
+│   └── ApisixConsumerIntegration.java   (API consumer and quota sync, F8)
 ├── event/
 │   └── SubscriptionEventProducer.java
 └── exception/
@@ -592,8 +592,8 @@ Retry strategy: exponential backoff, max 3 retries. On third failure → DLQ.
 
 ### Identity & Access
 
-- **Authentication:** WSO2 Identity Server — OAuth2 Authorization Code + PKCE
-- **Token validation:** JWT introspection at WSO2 API Manager (gateway layer)
+- **Authentication:** Keycloak — OAuth2 Authorization Code + PKCE; roles in the `realm_access.roles` claim
+- **Token validation:** JWT validated at the Apache APISIX gateway (`openid-connect` plugin) and again in the backend (`quarkus-oidc`)
 - **Authorization:** RBAC enforced at service layer with `@RolesAllowed`
 
 ### RBAC Roles
@@ -690,7 +690,7 @@ quarkus-s3  (Quarkus Amazon S3 extension)
 ## 11. Module Dependency Graph
 
 ```
-REST layer (WSO2 API Manager)
+REST layer (Apache APISIX gateway)
          │
          ▼
   [listing] ──event──► [certification]
@@ -712,7 +712,7 @@ REST layer (WSO2 API Manager)
 [vehicle] ◄── cached ── [listing] (via Redis)
 [user] ◄── internal ── [listing, financing, inspection]
 [partner] ◄── internal ── [inspection, certification, promotion]
-[subscription] ◄── WSO2 API Manager sync
+[subscription] ◄── Apache APISIX consumer sync
 ```
 
 ---

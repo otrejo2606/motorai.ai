@@ -18,6 +18,9 @@ public enum EventType {
     AI_PHOTO_ANALYSIS_COMPLETED("ai.photo.analysis.completed"),
     AI_PRICE_RECOMMENDED("ai.price.recommended"),
     PROMOTION_REQUESTED("promotion.requested"),
+    VEHICLE_REGISTRY_REQUESTED("vehicle.registry.requested"),
+    VEHICLE_REGISTRY_COMPLETED("vehicle.registry.completed"),
+    VEHICLE_REGISTRY_REVIEW_REQUIRED("vehicle.registry.review.required"),
     NOTIFICATION_SEND("notification.send");
 
     private final String routingKey;

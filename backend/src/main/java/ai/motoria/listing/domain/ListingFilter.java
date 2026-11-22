@@ -6,10 +6,18 @@ import java.math.BigDecimal;
 
 public record ListingFilter(
         ListingStatus status,
-        ListingCategory category,
+        String brand,
+        String model,
+        Integer yearFrom,
+        Integer yearTo,
         BigDecimal minPrice,
         BigDecimal maxPrice,
-        Integer modelYear,
+        Integer maxMileage,
+        Province province,
+        Fuel fuel,
+        Transmission transmission,
+        TrustLevel trustLevel,
+        ListingSort sort,
         int page,
         int size) {
 }

@@ -8,8 +8,8 @@ Change de definición (F0): no lleva código. Marcas: (A) agente, (B) puerta del
 - [x] 0.2 (A) proposal.md con decisiones del dueño del 2026-11-21 y límites.
 - [x] 0.3 (A) design.md: posicionamiento, ingresos, fuentes y riesgo, arquitectura, eventos, flujo, roadmap y preguntas abiertas.
 - [x] 0.4 (A) Specs de las nueve capacidades: `vehiculo-registro`, `publicacion-anuncios`, `inspeccion-ia`, `red-aliados`, `comparador-ia`, `cotizacion-seguros`, `traspaso-notarial`, `precalificacion-credito`, `identidad-cumplimiento`.
-- [ ] 0.5 (B) Revisar y aprobar el alcance y el roadmap.
-- [ ] 0.6 (A) Actualizar `MOTORIA_MASTER_PROMPT.md` para remitir al OpenSpec como fuente de alcance y agregar los módulos `insurance` y `notary` (depende de 0.5).
+- [x] 0.5 (B) Revisar y aprobar el alcance y el roadmap. Aprobado por el dueño el 2026-11-21 al ordenar F1.
+- [ ] 0.6 (A) Actualizar `MOTORIA_MASTER_PROMPT.md` para remitir al OpenSpec como fuente de alcance y agregar los módulos `insurance` y `notary`. Parcial: ya remite a `openspec/` y declara Keycloak y Apache APISIX; faltan los módulos `insurance` y `notary`, que se agregan con F4 y F5.
 - [ ] 0.7 (A) Archivar este change para mover las specs a `openspec/specs/` (depende de 0.5).
 - [x] 0.8 (A) Investigación de las preguntas abiertas en fuentes públicas (design D8).
 
@@ -19,7 +19,7 @@ Change de definición (F0): no lleva código. Marcas: (A) agente, (B) puerta del
 - [ ] 1.2 (B) Inscribir la base de datos ante PRODHAB (C: plazo de la autoridad).
 - [ ] 1.3 (B) Criterio de abogado: si la compraventa de vehículos usados obliga a inscribirse ante SUGEF por la Ley 7786, artículo 15 bis, con el texto vigente y el estado del expediente 25.129 (D7.4, D8.4).
 - [ ] 1.4 (B) Definir la fuente de listas restrictivas y nombrar al oficial de cumplimiento (D7.8; depende de 1.3).
-- [x] 1.5 (A) Redactar el change `add-mvp-placa-publicacion` (proposal, design, tasks y specs). Su implementación sigue dependiendo de 0.5.
+- [x] 1.5 (A) Redactar el change `add-mvp-placa-publicacion` (proposal, design, tasks y specs). Implementado en la rama `feat/f1-mvp-placa-publicacion` tras aprobarse 0.5.
 
 ## F2. Inspección IA, certificación y aliados (módulos `inspection`, `certification`, `partner`, `ai`)
 

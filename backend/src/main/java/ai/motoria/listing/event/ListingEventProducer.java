@@ -22,7 +22,7 @@ public class ListingEventProducer {
                 new ListingCreatedPayload(
                         listing.getId(),
                         listing.getSellerId(),
-                        listing.getVehicleSpecId(),
+                        listing.getVehicleId(),
                         listing.getStatus(),
                         listing.getPrice()));
     }

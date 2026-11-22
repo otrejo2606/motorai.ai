@@ -1,0 +1,25 @@
+{
+  "name": "motoria-frontend",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "packages/i18n",
+    "packages/api",
+    "packages/ui",
+    "apps/portal-cliente",
+    "apps/backoffice"
+  ],
+  "scripts": {
+    "dev:portal": "npm run dev --workspace @motoria/portal-cliente",
+    "dev:backoffice": "npm run dev --workspace @motoria/backoffice",
+    "build": "npm run build --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present"
+  },
+  "devDependencies": {
+    "typescript": "5.6.3"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
