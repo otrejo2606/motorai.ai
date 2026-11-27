@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -27,12 +28,15 @@ import java.util.UUID;
 
 /**
  * Vehicle identified by country and normalized plate (design D3). State machine:
- * REGISTRY_PENDING, then REGISTRY_IN_REVIEW when a registry document is attached, then REGISTRY_VERIFIED or
- * REGISTRY_REJECTED. A rejected or stale verified vehicle can receive a new document.
+ * REGISTRY_PENDING, then REGISTRY_IN_REVIEW when a registry document is attached or the registry agreement (Credid)
+ * answers, then REGISTRY_VERIFIED or REGISTRY_REJECTED. A rejected or stale verified vehicle can receive a new
+ * document; the maximum age depends on where the data came from (registrySource).
  */
 @Entity
 @Table(name = "vehicle", schema = "vehicle")
 public class Vehicle extends AuditableEntity {
+
+    private static final int MAX_VALUE_LENGTH = 500;
 
     @Id
     @Column(name = "id", nullable = false)
@@ -76,6 +80,10 @@ public class Vehicle extends AuditableEntity {
     @Column(name = "requested_by", nullable = false)
     private UUID requestedBy;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "registry_source", length = 20)
+    private RegistrySource registrySource;
+
     @OneToMany(mappedBy = "vehicle", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<VehicleAttribute> attributes = new ArrayList<>();
 
@@ -99,22 +107,105 @@ public class Vehicle extends AuditableEntity {
         return registryCheckedAt == null || registryCheckedAt.plus(maxAge).isBefore(now);
     }
 
+    /**
+     * Staleness with the maximum age of the source of the data: agreement data lives longer than a document.
+     */
+    public boolean isRegistryStale(Instant now, Duration documentMaxAge, Duration agreementMaxAge) {
+        return isRegistryStale(now, registryMaxAge(documentMaxAge, agreementMaxAge));
+    }
+
+    public Duration registryMaxAge(Duration documentMaxAge, Duration agreementMaxAge) {
+        return registrySource == RegistrySource.AGREEMENT ? agreementMaxAge : documentMaxAge;
+    }
+
     public boolean canReceiveRegistryDocument(Instant now, Duration maxAge) {
+        return canReceiveRegistryDocument(now, maxAge, maxAge);
+    }
+
+    public boolean canReceiveRegistryDocument(Instant now, Duration documentMaxAge, Duration agreementMaxAge) {
         return status == VehicleStatus.REGISTRY_PENDING
                 || status == VehicleStatus.REGISTRY_REJECTED
-                || (status == VehicleStatus.REGISTRY_VERIFIED && isRegistryStale(now, maxAge));
+                || (status == VehicleStatus.REGISTRY_VERIFIED && isRegistryStale(now, documentMaxAge, agreementMaxAge));
     }
 
     public void attachRegistryDocument(UUID documentMediaId, UUID requester, Instant now, Duration maxAge) {
-        if (!canReceiveRegistryDocument(now, maxAge)) {
+        attachRegistryDocument(documentMediaId, requester, now, maxAge, maxAge);
+    }
+
+    public void attachRegistryDocument(UUID documentMediaId, UUID requester, Instant now, Duration documentMaxAge,
+                                       Duration agreementMaxAge) {
+        if (!canReceiveRegistryDocument(now, documentMaxAge, agreementMaxAge)) {
             throw new IllegalStateException("Vehicle cannot receive a registry document in state " + status);
         }
         this.registryDocumentMediaId = Objects.requireNonNull(documentMediaId);
         this.requestedBy = Objects.requireNonNull(requester);
         this.status = VehicleStatus.REGISTRY_IN_REVIEW;
+        this.registrySource = RegistrySource.DOCUMENT;
         this.reviewReason = null;
         this.rejectionReason = null;
         this.extractionInferenceId = null;
+    }
+
+    /**
+     * Verified with registry agreement data that is still within its maximum age: the registry is not queried again.
+     */
+    public boolean hasFreshAgreementData(Instant now, Duration agreementMaxAge) {
+        return status == VehicleStatus.REGISTRY_VERIFIED
+                && registrySource == RegistrySource.AGREEMENT
+                && !isRegistryStale(now, agreementMaxAge);
+    }
+
+    /**
+     * Registry agreement data can be applied unless a document or an earlier answer is waiting for the analyst.
+     * Whether a verified vehicle should be queried again (freshness) is decided by the service.
+     */
+    public boolean canApplyAgreementLookup() {
+        return status != VehicleStatus.REGISTRY_IN_REVIEW;
+    }
+
+    /**
+     * Stores the values answered by the registry agreement (source REGISTRY_AGREEMENT, no document, page or
+     * confidence), replaces the encumbrances with the reported pledge and leaves the case in REGISTRY_IN_REVIEW with
+     * {@code reason}; the service approves it right away when automatic approval applies.
+     *
+     * @param values            registry values; OWNER_ID_HASH already hashed
+     * @param pledgeDescription description of the pledge, used only when {@code pledged}
+     */
+    public void applyAgreementLookup(Map<VehicleAttributeKey, String> values, boolean pledged, String pledgeDescription,
+                                     UUID requester, ReviewReason reason, Instant now) {
+        if (!canApplyAgreementLookup()) {
+            throw new IllegalStateException("Vehicle cannot receive registry agreement data in state " + status);
+        }
+        this.requestedBy = Objects.requireNonNull(requester);
+        this.reviewReason = Objects.requireNonNull(reason);
+        this.status = VehicleStatus.REGISTRY_IN_REVIEW;
+        this.registrySource = RegistrySource.AGREEMENT;
+        this.registryDocumentMediaId = null;
+        this.registryDocumentDate = null;
+        this.extractionInferenceId = null;
+        this.rejectionReason = null;
+
+        Set<VehicleAttributeKey> received = new HashSet<>();
+        for (Map.Entry<VehicleAttributeKey, String> entry : values.entrySet()) {
+            String value = entry.getValue() == null ? "" : entry.getValue().trim();
+            if (entry.getKey() == null || value.isEmpty()) {
+                continue;
+            }
+            String stored = value.length() <= MAX_VALUE_LENGTH ? value : value.substring(0, MAX_VALUE_LENGTH);
+            received.add(entry.getKey());
+            Optional<VehicleAttribute> existing = findAttribute(entry.getKey());
+            if (existing.isPresent()) {
+                existing.get().replace(stored, AttributeSource.REGISTRY_AGREEMENT, null, null, null, now);
+            } else {
+                attributes.add(VehicleAttribute.create(this, entry.getKey(), stored, AttributeSource.REGISTRY_AGREEMENT,
+                        null, null, null, now));
+            }
+        }
+        attributes.removeIf(attribute -> attribute.getSource().isOfficial() && !received.contains(attribute.getKey()));
+        encumbrances.clear();
+        if (pledged) {
+            encumbrances.add(RegistryEncumbrance.create(this, EncumbranceType.PLEDGE, pledgeDescription, null, null, null));
+        }
     }
 
     public boolean isAwaitingExtraction(UUID documentMediaId) {
@@ -298,6 +389,10 @@ public class Vehicle extends AuditableEntity {
 
     public UUID getRequestedBy() {
         return requestedBy;
+    }
+
+    public RegistrySource getRegistrySource() {
+        return registrySource;
     }
 
     public List<VehicleAttribute> getAttributes() {

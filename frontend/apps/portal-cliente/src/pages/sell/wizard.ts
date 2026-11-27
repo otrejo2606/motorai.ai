@@ -1,4 +1,9 @@
-export const SELL_STEPS = ['plate', 'registry', 'status', 'vehicle', 'data', 'photos', 'submit'] as const;
+/**
+ * Orden del asistente (add-consulta-credid-vehiculos): placa, datos declarados y fotos primero; luego la consulta al
+ * Registro Nacional por convenio (Credid). Solo si el registro no pudo responder se pide el informe PDF (contingencia)
+ * y se espera su revision; al final, la ficha verificada y el envio.
+ */
+export const SELL_STEPS = ['plate', 'data', 'photos', 'lookup', 'registry', 'status', 'vehicle', 'submit'] as const;
 export type SellStep = (typeof SELL_STEPS)[number];
 
 export interface WizardIds {

@@ -43,6 +43,12 @@ public class BackofficeIdentityVerificationResource {
     }
 
     @POST
+    @Path("/{verificationId}/registry-check")
+    public BackofficeIdentityVerificationResponse recheckRegistry(@PathParam("verificationId") UUID verificationId) {
+        return identityVerificationService.recheckRegistry(verificationId);
+    }
+
+    @POST
     @Path("/{verificationId}/reject")
     public BackofficeIdentityVerificationResponse reject(@PathParam("verificationId") UUID verificationId,
                                                          @Valid RejectIdentityVerificationRequest request) {

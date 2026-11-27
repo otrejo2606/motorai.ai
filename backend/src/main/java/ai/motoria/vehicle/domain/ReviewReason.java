@@ -9,5 +9,10 @@ public enum ReviewReason {
     DOCUMENT_TOO_OLD,
     PLATE_MISMATCH,
     MISSING_REQUIRED,
-    EXTRACTION_FAILED
+    EXTRACTION_FAILED,
+    /**
+     * Data from the registry agreement (Credid) waiting for the analyst because automatic approval of agreement data
+     * is off (motoria.vehicle.registry.agreement-auto-approve=false).
+     */
+    AGREEMENT_REVIEW
 }

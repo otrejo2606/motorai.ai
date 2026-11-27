@@ -8,6 +8,7 @@ import ai.motoria.common.port.UserIdentityPort;
 import ai.motoria.common.port.UserIdentitySnapshot;
 import ai.motoria.common.port.VehicleRegistryPort;
 import ai.motoria.common.port.VehicleSnapshot;
+import ai.motoria.listing.domain.Fuel;
 import ai.motoria.listing.domain.Listing;
 import ai.motoria.listing.domain.ListingPublicationPolicy;
 import ai.motoria.listing.domain.TrustLevel;
@@ -20,7 +21,7 @@ import java.util.Optional;
 
 /**
  * Gathers the vehicle, identity and photo protocol through the shared ports and applies
- * {@link ListingPublicationPolicy}. Refreshes the trust level on the way.
+ * {@link ListingPublicationPolicy}. Refreshes the trust level and the registry data of the listing on the way.
  */
 @ApplicationScoped
 public class ListingPublicationGuard {
@@ -37,7 +38,19 @@ public class ListingPublicationGuard {
     public void assertPublishable(Listing listing) {
         Optional<VehicleSnapshot> vehicle = vehicleRegistryPort.findVehicle(listing.getVehicleId());
         boolean verified = vehicle.map(VehicleSnapshot::isRegistryVerified).orElse(false);
-        listing.updateTrustLevel(verified ? TrustLevel.REGISTRY_VERIFIED : TrustLevel.NONE);
+        if (verified) {
+            // The draft can be created and get its photos before the registry lookup (add-consulta-credid-vehiculos),
+            // so the registry data is copied again here, once the vehicle is verified.
+            VehicleSnapshot snapshot = vehicle.get();
+            listing.applyVehicleData(
+                    snapshot.attribute("BRAND").orElse(null),
+                    snapshot.attribute("MODEL").orElse(null),
+                    ListingPersistenceService.parseYear(snapshot.attribute("YEAR").orElse(null)),
+                    Fuel.fromRegistry(snapshot.attribute("FUEL").orElse(null)),
+                    TrustLevel.REGISTRY_VERIFIED);
+        } else {
+            listing.updateTrustLevel(TrustLevel.NONE);
+        }
 
         Optional<UserIdentitySnapshot> identity = userIdentityPort.findIdentity(listing.getSellerId());
         int identityRank = identity.map(UserIdentitySnapshot::identityRank).orElse(0);

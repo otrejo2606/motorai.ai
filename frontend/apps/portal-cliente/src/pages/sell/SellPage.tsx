@@ -5,6 +5,7 @@ import { useProfile } from '@motoria/api';
 import { Alert, PageTitle, Stepper } from '@motoria/ui';
 import { SELL_STEPS, isSellStep, type SellStep, type WizardIds } from './wizard';
 import { PlateStep } from './PlateStep';
+import { RegistryLookupStep } from './RegistryLookupStep';
 import { RegistryStep } from './RegistryStep';
 import { RegistryStatusStep } from './RegistryStatusStep';
 import { VehicleReviewStep } from './VehicleReviewStep';
@@ -14,7 +15,8 @@ import { SubmitStep } from './SubmitStep';
 
 function resolveStep(requested: SellStep, ids: WizardIds): SellStep {
   if (requested !== 'plate' && !ids.vehicleId) return 'plate';
-  if ((requested === 'photos' || requested === 'submit') && !ids.listingId) return 'data';
+  // Las fotos, la consulta al registro y el envio necesitan el borrador del anuncio (datos declarados).
+  if ((requested === 'photos' || requested === 'lookup' || requested === 'submit') && !ids.listingId) return 'data';
   return requested;
 }
 
@@ -58,11 +60,12 @@ export function SellPage() {
         </Alert>
       ) : null}
       {step === 'plate' ? <PlateStep {...wizard} /> : null}
+      {step === 'data' ? <DeclaredDataStep {...wizard} /> : null}
+      {step === 'photos' ? <PhotosStep {...wizard} /> : null}
+      {step === 'lookup' ? <RegistryLookupStep {...wizard} /> : null}
       {step === 'registry' ? <RegistryStep {...wizard} /> : null}
       {step === 'status' ? <RegistryStatusStep {...wizard} /> : null}
       {step === 'vehicle' ? <VehicleReviewStep {...wizard} /> : null}
-      {step === 'data' ? <DeclaredDataStep {...wizard} /> : null}
-      {step === 'photos' ? <PhotosStep {...wizard} /> : null}
       {step === 'submit' ? <SubmitStep {...wizard} /> : null}
     </>
   );

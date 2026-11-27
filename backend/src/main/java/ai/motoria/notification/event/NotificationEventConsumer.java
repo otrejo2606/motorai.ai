@@ -3,6 +3,7 @@ package ai.motoria.notification.event;
 import ai.motoria.common.event.DomainEventEnvelope;
 import ai.motoria.common.event.EventType;
 import ai.motoria.notification.dto.ListingNotificationCommand;
+import ai.motoria.notification.dto.VehicleRegistryAnomalyNotificationCommand;
 import ai.motoria.notification.dto.VehicleRegistryNotificationCommand;
 import ai.motoria.notification.service.NotificationService;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
@@ -17,6 +18,7 @@ import jakarta.inject.Inject;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.UUID;
 
 @ApplicationScoped
@@ -58,13 +60,24 @@ public class NotificationEventConsumer {
     }
 
     /**
-     * Vehicle registry events: review.required (backoffice tray) and completed (seller can continue).
+     * Vehicle registry events: review.required (backoffice tray), completed (seller can continue) and
+     * anomaly.detected (the registry data does not fit the seller).
      */
     @Incoming("notification-vehicle-registry-events-in")
     @Blocking
     public void onVehicleRegistryEvent(String rawEvent) {
         DomainEventEnvelope<JsonNode> envelope = readEnvelope(rawEvent);
         EventType eventType = EventType.fromRoutingKey(envelope.eventType()).orElse(null);
+        if (eventType == EventType.VEHICLE_REGISTRY_ANOMALY_DETECTED) {
+            VehicleRegistryAnomalyPayload anomaly = convertPayload(envelope.payload(), VehicleRegistryAnomalyPayload.class);
+            notificationService.handleVehicleRegistryAnomaly(new VehicleRegistryAnomalyNotificationCommand(
+                    eventType,
+                    envelope.correlationId(),
+                    anomaly.vehicleId(),
+                    anomaly.sellerId(),
+                    anomaly.anomalies() == null ? List.of() : anomaly.anomalies()));
+            return;
+        }
         if (eventType != EventType.VEHICLE_REGISTRY_REVIEW_REQUIRED && eventType != EventType.VEHICLE_REGISTRY_COMPLETED) {
             Log.warnf("Ignoring unsupported vehicle notification event type %s", envelope.eventType());
             return;
@@ -133,6 +146,13 @@ public class NotificationEventConsumer {
             UUID vehicleId,
             String reason,
             String status) {
+    }
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    private record VehicleRegistryAnomalyPayload(
+            UUID vehicleId,
+            UUID sellerId,
+            List<String> anomalies) {
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)

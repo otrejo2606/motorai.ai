@@ -8,6 +8,7 @@ import { RegistryReviewsPage } from './pages/RegistryReviewsPage';
 import { RegistryReviewDetailPage } from './pages/RegistryReviewDetailPage';
 import { RegistryRequestsPage } from './pages/RegistryRequestsPage';
 import { IdentityVerificationsPage } from './pages/IdentityVerificationsPage';
+import { PersonRegistryPage } from './pages/PersonRegistryPage';
 import { ListingsQueuePage } from './pages/ListingsQueuePage';
 import { PhotoProtocolPage } from './pages/PhotoProtocolPage';
 
@@ -31,6 +32,7 @@ export function App() {
       { to: '/registry-reviews', label: t('backoffice.nav.registryReviews') },
       { to: '/registry-requests', label: t('backoffice.nav.registryRequests') },
       { to: '/identity-verifications', label: t('backoffice.nav.identity') },
+      { to: '/person-registry', label: t('backoffice.nav.personRegistry') },
       { to: '/listings', label: t('backoffice.nav.listings') },
     );
   }
@@ -60,6 +62,7 @@ export function App() {
         <Route path="/registry-reviews/:vehicleId" element={<Staff><RegistryReviewDetailPage /></Staff>} />
         <Route path="/registry-requests" element={<Staff><RegistryRequestsPage /></Staff>} />
         <Route path="/identity-verifications" element={<Staff><IdentityVerificationsPage /></Staff>} />
+        <Route path="/person-registry" element={<Staff><PersonRegistryPage /></Staff>} />
         <Route path="/listings" element={<Staff><ListingsQueuePage /></Staff>} />
         <Route
           path="/photo-protocol"

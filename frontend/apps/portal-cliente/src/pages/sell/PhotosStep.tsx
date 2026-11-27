@@ -158,7 +158,8 @@ export function PhotosStep({ listingId, go }: WizardProps) {
         <Alert tone="success" title={t('sell.photos.complete')} />
       )}
       <div className="m-actions">
-        <Button onClick={() => go('submit')} disabled={missing.length > 0}>
+        {/* Con las fotos completas se consulta el registro por placa (add-consulta-credid-vehiculos). */}
+        <Button onClick={() => go('lookup')} disabled={missing.length > 0}>
           {t('common.continue')}
         </Button>
         <Button variant="secondary" onClick={() => go('data')}>

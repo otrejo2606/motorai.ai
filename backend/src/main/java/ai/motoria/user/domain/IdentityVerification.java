@@ -61,6 +61,13 @@ public class IdentityVerification extends AuditableEntity {
     @Column(name = "rejection_reason", length = 500)
     private String rejectionReason;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "registry_status", length = 20)
+    private RegistryMatchStatus registryStatus;
+
+    @Column(name = "registry_check_id")
+    private UUID registryCheckId;
+
     protected IdentityVerification() {
     }
 
@@ -104,6 +111,17 @@ public class IdentityVerification extends AuditableEntity {
         this.reviewedBy = Objects.requireNonNull(reviewer);
         this.reviewedAt = now;
         this.rejectionReason = reason;
+    }
+
+    /**
+     * Stores the comparison with the person registry. Only while the case waits for the analyst.
+     *
+     * @param checkId the registry check used, or null when the registry could not be queried
+     */
+    public void recordRegistryCheck(RegistryMatchStatus status, UUID checkId) {
+        ensureStatus(IdentityVerificationStatus.SUBMITTED);
+        this.registryStatus = Objects.requireNonNull(status);
+        this.registryCheckId = checkId;
     }
 
     /**
@@ -171,5 +189,13 @@ public class IdentityVerification extends AuditableEntity {
 
     public String getRejectionReason() {
         return rejectionReason;
+    }
+
+    public RegistryMatchStatus getRegistryStatus() {
+        return registryStatus;
+    }
+
+    public UUID getRegistryCheckId() {
+        return registryCheckId;
     }
 }

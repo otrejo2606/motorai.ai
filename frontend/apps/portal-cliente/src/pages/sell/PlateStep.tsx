@@ -2,10 +2,10 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useTranslation } from 'react-i18next';
-import { useCreateVehicle, type Vehicle } from '@motoria/api';
+import { useCreateVehicle } from '@motoria/api';
 import { Button, Card, ErrorAlert, TextField, useFieldError } from '@motoria/ui';
 import { appConfig } from '../../config';
-import type { SellStep, WizardProps } from './wizard';
+import type { WizardProps } from './wizard';
 
 const plateSchema = z.object({
   plate: z
@@ -18,12 +18,10 @@ const plateSchema = z.object({
 
 type PlateValues = z.infer<typeof plateSchema>;
 
-/** Siguiente paso segun el estado registral del vehiculo devuelto (se reutiliza si ya existe). */
-export function stepForVehicle(vehicle: Vehicle): SellStep {
-  if (vehicle.status === 'REGISTRY_VERIFIED') return 'vehicle';
-  if (vehicle.status === 'REGISTRY_IN_REVIEW') return 'status';
-  return 'registry';
-}
+/**
+ * Tras la placa siempre siguen los datos declarados y las fotos; el estado registral del vehiculo (que puede existir
+ * ya) se resuelve despues, en la consulta al registro (add-consulta-credid-vehiculos).
+ */
 
 export function PlateStep({ go }: WizardProps) {
   const { t } = useTranslation();
@@ -37,7 +35,7 @@ export function PlateStep({ go }: WizardProps) {
   const onSubmit = (values: PlateValues) => {
     createVehicle.mutate(
       { countryCode: appConfig.country, plate: values.plate.toUpperCase() },
-      { onSuccess: (vehicle) => go(stepForVehicle(vehicle), { vehicleId: vehicle.id }) },
+      { onSuccess: (vehicle) => go('data', { vehicleId: vehicle.id }) },
     );
   };
 

@@ -2,10 +2,12 @@ package ai.motoria.vehicle.event;
 
 import ai.motoria.common.event.DomainEventPublisher;
 import ai.motoria.common.event.EventType;
+import ai.motoria.vehicle.domain.RegistryAnomaly;
 import ai.motoria.vehicle.domain.Vehicle;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -35,5 +37,13 @@ public class VehicleEventProducer {
     public void registryCompleted(Vehicle vehicle) {
         eventPublisher.publish(EventType.VEHICLE_REGISTRY_COMPLETED, MODULE, vehicle.getId(),
                 new VehicleRegistryCompletedPayload(vehicle.getId(), vehicle.getStatus().name(), vehicle.isTransferBlocked()));
+    }
+
+    /**
+     * The registry data does not fit the seller (add-consulta-credid-vehiculos): the notification module tells them.
+     */
+    public void registryAnomalyDetected(Vehicle vehicle, UUID sellerId, List<RegistryAnomaly> anomalies) {
+        eventPublisher.publish(EventType.VEHICLE_REGISTRY_ANOMALY_DETECTED, MODULE, vehicle.getId(),
+                new VehicleRegistryAnomalyPayload(vehicle.getId(), sellerId, anomalies.stream().map(Enum::name).toList()));
     }
 }

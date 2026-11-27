@@ -40,6 +40,8 @@ import java.util.UUID;
 
 /**
  * Manual identity verification (design D1) with a configurable daily quota of submissions for analysts.
+ * On submit the profile is compared with the person registry (Credid); the result is shown to the analyst and
+ * never approves or rejects by itself (the registry has no liveness check).
  */
 @ApplicationScoped
 public class IdentityVerificationService {
@@ -60,6 +62,9 @@ public class IdentityVerificationService {
 
     @Inject
     MediaPort mediaPort;
+
+    @Inject
+    PersonRegistryService personRegistryService;
 
     @Inject
     UserMapper userMapper;
@@ -123,6 +128,10 @@ public class IdentityVerificationService {
                     "The daily capacity for manual verification is exhausted; try again tomorrow");
         }
         verification.submit(request.documentFrontMediaId(), request.documentBackMediaId(), request.selfieMediaId(), now);
+        UserProfile profile = userProfileRepository.findByIdOptional(userId)
+                .orElseThrow(() -> new NotFoundException(UserErrorCodes.PROFILE_NOT_FOUND, "Profile not found"));
+        PersonRegistryService.RegistryOutcome outcome = personRegistryService.checkProfile(profile, verification.getId());
+        verification.recordRegistryCheck(outcome.status(), outcome.checkId());
         return userMapper.toResponse(verification);
     }
 
@@ -157,7 +166,28 @@ public class IdentityVerificationService {
         UserProfile profile = userProfileRepository.findByIdOptional(verification.getUserId())
                 .orElseThrow(() -> new NotFoundException(UserErrorCodes.PROFILE_NOT_FOUND, "Profile not found"));
         profile.raiseIdentityLevel(IdentityLevel.LEVEL_2, verification.getProvider(), verification.getId().toString());
-        return userMapper.toBackofficeResponse(verification, profile, userProfileService.decryptIdType(profile));
+        return userMapper.toBackofficeResponse(verification, profile, userProfileService.decryptIdType(profile),
+                personRegistryService.findCheck(verification.getRegistryCheckId()).orElse(null));
+    }
+
+    /**
+     * Queries the person registry again for a case waiting for review (for example after UNAVAILABLE). A fresh
+     * check of the same number is reused, so this does not pay twice.
+     */
+    @Audited
+    @Transactional
+    public BackofficeIdentityVerificationResponse recheckRegistry(UUID verificationId) {
+        IdentityVerification verification = findForReview(verificationId);
+        if (verification.getStatus() != IdentityVerificationStatus.SUBMITTED) {
+            throw new InvalidStateException(UserErrorCodes.IDENTITY_VERIFICATION_INVALID_STATE,
+                    "Only a verification waiting for review can be checked again");
+        }
+        UserProfile profile = userProfileRepository.findByIdOptional(verification.getUserId())
+                .orElseThrow(() -> new NotFoundException(UserErrorCodes.PROFILE_NOT_FOUND, "Profile not found"));
+        PersonRegistryService.RegistryOutcome outcome = personRegistryService.checkProfile(profile, verification.getId());
+        verification.recordRegistryCheck(outcome.status(), outcome.checkId());
+        return userMapper.toBackofficeResponse(verification, profile, userProfileService.decryptIdType(profile),
+                outcome.check());
     }
 
     @Audited
@@ -210,6 +240,7 @@ public class IdentityVerificationService {
     private BackofficeIdentityVerificationResponse toBackofficeResponse(IdentityVerification verification) {
         UserProfile profile = userProfileRepository.findByIdOptional(verification.getUserId()).orElse(null);
         IdType idType = profile == null ? null : userProfileService.decryptIdType(profile);
-        return userMapper.toBackofficeResponse(verification, profile, idType);
+        return userMapper.toBackofficeResponse(verification, profile, idType,
+                personRegistryService.findCheck(verification.getRegistryCheckId()).orElse(null));
     }
 }

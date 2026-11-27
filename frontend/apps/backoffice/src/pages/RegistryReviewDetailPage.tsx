@@ -148,6 +148,8 @@ export function RegistryReviewDetailPage() {
 
   const data = review.data;
   const inReview = data.status === 'REGISTRY_IN_REVIEW';
+  // Datos del Registro Nacional por convenio (Credid): no hay documento, paginas ni confianza.
+  const agreement = data.registrySource === 'AGREEMENT';
   const done = () => navigate('/registry-reviews', { replace: true });
 
   return (
@@ -157,9 +159,11 @@ export function RegistryReviewDetailPage() {
       </p>
       <PageTitle
         subtitle={
-          data.documentDate
-            ? t('backoffice.review.subtitle', { date: format.date(data.documentDate) })
-            : t('backoffice.review.noDocumentDate')
+          agreement
+            ? t('backoffice.review.agreementSubtitle')
+            : data.documentDate
+              ? t('backoffice.review.subtitle', { date: format.date(data.documentDate) })
+              : t('backoffice.review.noDocumentDate')
         }
       >
         {t('backoffice.review.title', { plate: data.plate })}
@@ -173,6 +177,11 @@ export function RegistryReviewDetailPage() {
           <p>{t('backoffice.review.noDataApplied')}</p>
         </Alert>
       ) : null}
+      {agreement ? (
+        <Alert tone="info" title={t('backoffice.review.agreementTitle')}>
+          <p>{t('backoffice.review.agreementNoDocument')}</p>
+        </Alert>
+      ) : null}
       {data.rejectionReason ? (
         <Alert tone="error" title={t('backoffice.review.rejectedWith')}>
           <p className="m-pre">{data.rejectionReason}</p>
@@ -181,7 +190,11 @@ export function RegistryReviewDetailPage() {
 
       <div className="m-split">
         <section aria-label={t('backoffice.review.documentPages')} className="m-scroll-pane">
-          {data.pages.length === 0 ? <p className="m-empty">{t('backoffice.review.noPages')}</p> : null}
+          {data.pages.length === 0 ? (
+            <p className="m-empty">
+              {agreement ? t('backoffice.review.agreementNoDocument') : t('backoffice.review.noPages')}
+            </p>
+          ) : null}
           {data.pages.map((page) => (
             <figure key={page.page} id={'doc-page-' + String(page.page)} tabIndex={-1}>
               <img

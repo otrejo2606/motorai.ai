@@ -6,9 +6,11 @@ import ai.motoria.common.exception.QuotaExceededException;
 import ai.motoria.user.domain.IdentityLevel;
 import ai.motoria.user.domain.IdType;
 import ai.motoria.user.dto.IdentityChallengeResponse;
+import ai.motoria.user.dto.PersonRegistryLookupResponse;
 import ai.motoria.user.dto.UserProfileResponse;
 import ai.motoria.user.service.ConsentService;
 import ai.motoria.user.service.IdentityVerificationService;
+import ai.motoria.user.service.PersonRegistryService;
 import ai.motoria.user.service.UserProfileService;
 import io.quarkus.redis.datasource.RedisDataSource;
 import io.quarkus.redis.datasource.keys.KeyCommands;
@@ -21,6 +23,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
@@ -34,7 +37,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 /**
- * Roles and ownership on /me/* and /backoffice/identity-verifications.
+ * Roles and ownership on /me/*, /backoffice/identity-verifications and /backoffice/person-registry.
  */
 @QuarkusTest
 class UserResourcesTest {
@@ -47,6 +50,9 @@ class UserResourcesTest {
 
     @InjectMock
     IdentityVerificationService identityVerificationService;
+
+    @InjectMock
+    PersonRegistryService personRegistryService;
 
     @InjectMock
     RedisDataSource redisDataSource;
@@ -188,5 +194,64 @@ class UserResourcesTest {
                 .then()
                 .statusCode(200)
                 .body("page", equalTo(0));
+    }
+
+    @Test
+    @TestSecurity(user = "seller-1", roles = "SELLER")
+    void sellerCannotLookUpPeopleInTheRegistry() {
+        given()
+                .contentType("application/json")
+                .body("""
+                        {"idType": "NATIONAL_ID", "idNumber": "102340567", "reason": "Revision de un caso de fraude"}
+                        """)
+                .when()
+                .post("/backoffice/person-registry/lookups")
+                .then()
+                .statusCode(403);
+    }
+
+    @Test
+    @TestSecurity(user = "analyst-1", roles = "BACKOFFICE")
+    void registryLookupWithoutReasonIsRejected() {
+        given()
+                .contentType("application/json")
+                .body("""
+                        {"idType": "NATIONAL_ID", "idNumber": "102340567"}
+                        """)
+                .when()
+                .post("/backoffice/person-registry/lookups")
+                .then()
+                .statusCode(400);
+    }
+
+    @Test
+    @TestSecurity(user = "analyst-1", roles = "BACKOFFICE")
+    void analystCanLookUpAPersonInTheRegistry() {
+        when(personRegistryService.lookup(any())).thenReturn(new PersonRegistryLookupResponse(
+                true, "stub", "F", "Maria Perez Rojas", LocalDate.now().plusYears(3), false, "COSTA RICA",
+                Instant.now(), true));
+
+        given()
+                .contentType("application/json")
+                .body("""
+                        {"idType": "NATIONAL_ID", "idNumber": "102340567", "reason": "Revision de un caso de fraude"}
+                        """)
+                .when()
+                .post("/backoffice/person-registry/lookups")
+                .then()
+                .statusCode(200)
+                .body("found", equalTo(true))
+                .body("fullName", equalTo("Maria Perez Rojas"))
+                .body("idNumber", nullValue());
+    }
+
+    @Test
+    @TestSecurity(user = "seller-1", roles = "SELLER")
+    void sellerCannotRecheckTheRegistryOfAVerification() {
+        given()
+                .when()
+                .post("/backoffice/identity-verifications/%s/registry-check".formatted(UUID.randomUUID()))
+                .then()
+                .statusCode(403);
     }
 }

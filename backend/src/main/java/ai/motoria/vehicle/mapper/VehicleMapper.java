@@ -80,7 +80,8 @@ public interface VehicleMapper {
                 vehicle.getExtractionInferenceId(),
                 pages,
                 vehicle.getAttributes().stream().map(this::toReviewAttribute).toList(),
-                vehicle.getEncumbrances().stream().map(this::toResponse).toList());
+                vehicle.getEncumbrances().stream().map(this::toResponse).toList(),
+                vehicle.getRegistrySource());
     }
 
     default RegistryRequestResponse toResponse(RegistryRequest request, Vehicle vehicle) {

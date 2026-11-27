@@ -21,6 +21,7 @@ import {
   useFormat,
 } from '@motoria/ui';
 import { PrivateImage } from '../components/PrivateImage';
+import { RegistryCheckPanel } from '../components/RegistryCheckPanel';
 import { RejectForm } from '../components/RejectForm';
 import { appConfig } from '../config';
 import { pageFrom, statusFrom } from './params';
@@ -46,6 +47,7 @@ function VerificationCard({ item }: { item: BackofficeIdentityVerification }) {
       <p>{t('backoffice.identity.expectedCode')}</p>
       <p className="m-code">{item.challengeCode ?? ''}</p>
       <p className="m-field__hint">{t('backoffice.identity.instructions')}</p>
+      <RegistryCheckPanel item={item} />
       <div className="m-grid">
         <figure>
           <figcaption>{t('identity.parts.front.title')}</figcaption>
