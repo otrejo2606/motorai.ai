@@ -11,6 +11,7 @@ import { IdentityVerificationsPage } from './pages/IdentityVerificationsPage';
 import { PersonRegistryPage } from './pages/PersonRegistryPage';
 import { ListingsQueuePage } from './pages/ListingsQueuePage';
 import { PhotoProtocolPage } from './pages/PhotoProtocolPage';
+import { PhotoReviewsPage } from './pages/PhotoReviewsPage';
 
 function Staff({ children }: { children: ReactNode }) {
   return (
@@ -34,6 +35,7 @@ export function App() {
       { to: '/identity-verifications', label: t('backoffice.nav.identity') },
       { to: '/person-registry', label: t('backoffice.nav.personRegistry') },
       { to: '/listings', label: t('backoffice.nav.listings') },
+      { to: '/photo-reviews', label: t('backoffice.nav.photoReviews') },
     );
   }
   if (isAdmin) {
@@ -64,6 +66,7 @@ export function App() {
         <Route path="/identity-verifications" element={<Staff><IdentityVerificationsPage /></Staff>} />
         <Route path="/person-registry" element={<Staff><PersonRegistryPage /></Staff>} />
         <Route path="/listings" element={<Staff><ListingsQueuePage /></Staff>} />
+        <Route path="/photo-reviews" element={<Staff><PhotoReviewsPage /></Staff>} />
         <Route
           path="/photo-protocol"
           element={

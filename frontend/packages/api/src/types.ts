@@ -162,6 +162,23 @@ export const PHOTO_SLOT_CODES = [
 ] as const;
 export type PhotoSlotCode = (typeof PHOTO_SLOT_CODES)[number];
 
+/**
+ * Validacion del angulo de cada foto con el clasificador local (add-captura-guiada-fotos). MISMATCH obliga a repetir la
+ * foto; UNCERTAIN y UNAVAILABLE no bloquean y quedan para el analista.
+ */
+export const PHOTO_ANGLE_STATUSES = ['NOT_CHECKED', 'PENDING', 'MATCH', 'MISMATCH', 'UNCERTAIN', 'UNAVAILABLE'] as const;
+export type PhotoAngleStatus = (typeof PHOTO_ANGLE_STATUSES)[number];
+
+export const PHOTO_REVIEW_DECISIONS = ['ACCEPTED', 'REJECTED'] as const;
+export type PhotoReviewDecision = (typeof PHOTO_REVIEW_DECISIONS)[number];
+
+export const PHOTO_REJECTION_REASONS = ['WRONG_ANGLE', 'BLURRY', 'TOO_DARK', 'OBSTRUCTED', 'NOT_THE_VEHICLE', 'OTHER'] as const;
+export type PhotoRejectionReason = (typeof PHOTO_REJECTION_REASONS)[number];
+
+/** Lo que lee una foto no calza con el vehiculo (solo cuando el servicio del clasificador tiene OCR). */
+export const PHOTO_ANOMALIES = ['VIN_MISMATCH', 'ODOMETER_MISMATCH'] as const;
+export type PhotoAnomaly = (typeof PHOTO_ANOMALIES)[number];
+
 export const IDENTITY_LEVELS = ['LEVEL_1', 'LEVEL_2', 'LEVEL_3'] as const;
 export type IdentityLevel = (typeof IDENTITY_LEVELS)[number];
 
@@ -243,11 +260,24 @@ export interface VehicleAttributeView {
   verified: boolean;
 }
 
-/** Para el dueno incluye las tomas privadas: mediaId siempre, publicUrl solo si ya es publica. */
+/**
+ * Para el dueno incluye las tomas privadas: mediaId siempre, publicUrl solo si ya es publica.
+ * Los campos de la validacion del angulo (add-captura-guiada-fotos) llegan nulos para el publico.
+ */
 export interface ListingPhoto {
   slot: PhotoSlotCode;
   mediaId: Uuid | null;
   publicUrl: string | null;
+  angleStatus?: PhotoAngleStatus | null;
+  /** Toma que vio el clasificador (una del protocolo u OTHER). */
+  detectedSlot?: string | null;
+  angleConfidence?: number | null;
+  mustBeRepeated?: boolean;
+  /** PhotoRejectionReason cuando hay que repetir la foto. */
+  repeatReason?: string | null;
+  readingAnomaly?: PhotoAnomaly | null;
+  reviewDecision?: PhotoReviewDecision | null;
+  angleCheckedAt?: IsoDateTime | null;
 }
 
 export interface ListingVehicle {
@@ -576,4 +606,35 @@ export interface RegistryReviewDetail {
   encumbrances: Encumbrance[];
   /** AGREEMENT: datos del convenio, sin documento ni paginas. */
   registrySource: RegistrySource | null;
+}
+
+// ---------- Backoffice: revision del angulo de las fotos (add-captura-guiada-fotos) ----------
+
+export interface PhotoReviewItem {
+  listingId: Uuid;
+  listingStatus: ListingStatus;
+  vehicleId: Uuid;
+  declaredMileage: number | null;
+  slot: PhotoSlotCode;
+  mediaId: Uuid;
+  publicUrl: string;
+  angleStatus: PhotoAngleStatus;
+  detectedSlot: string | null;
+  angleConfidence: number | null;
+  /** PhotoRejectionReason de un MISMATCH o codigo PHOTO_CLASSIFIER_* de un UNAVAILABLE. */
+  angleReason: string | null;
+  angleModelVersion: string | null;
+  readVin: string | null;
+  readOdometerKm: number | null;
+  readingAnomaly: PhotoAnomaly | null;
+  reviewDecision: PhotoReviewDecision | null;
+  reviewReason: PhotoRejectionReason | null;
+  angleCheckedAt: IsoDateTime | null;
+  updatedAt: IsoDateTime | null;
+}
+
+/** reason es obligatorio cuando decision es REJECTED. */
+export interface PhotoReviewRequest {
+  decision: PhotoReviewDecision;
+  reason?: PhotoRejectionReason;
 }

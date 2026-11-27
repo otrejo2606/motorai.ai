@@ -22,7 +22,8 @@ public class NotificationService {
     }
 
     /**
-     * Registry anomaly for the seller (owner mismatch, pledge). Like the other notifications of F1 it is only prepared
+     * Registry anomaly for the seller: owner mismatch and pledge (vehicle module), VIN and odometer read in the photos
+     * that do not fit (listing module, add-captura-guiada-fotos). Like the other notifications of F1 it is only prepared
      * here; the delivery channel (email or push) is still pending.
      */
     public void handleVehicleRegistryAnomaly(VehicleRegistryAnomalyNotificationCommand command) {

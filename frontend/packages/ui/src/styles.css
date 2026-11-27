@@ -646,3 +646,86 @@ fieldset.m-fieldset legend {
   max-height: 80vh;
   overflow-y: auto;
 }
+
+/* Captura guiada de fotos (add-captura-guiada-fotos): camara a pantalla completa con la silueta de la toma. */
+.m-capture,
+.m-ar {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  background: #000000;
+  color: #ffffff;
+}
+
+.m-capture__stage {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.m-capture__video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  background: #000000;
+}
+
+.m-capture__silhouette {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  stroke: #ffffff;
+  stroke-width: 3;
+  stroke-dasharray: 10 6;
+  opacity: 0.85;
+}
+
+.m-capture__silhouette--matched {
+  stroke: #47cd89;
+  stroke-dasharray: none;
+  opacity: 1;
+}
+
+.m-capture__status {
+  position: absolute;
+  left: 50%;
+  bottom: 16px;
+  transform: translateX(-50%);
+  max-width: calc(100% - 32px);
+  margin: 0;
+  padding: 8px 14px;
+  border-radius: var(--m-radius);
+  background: rgba(0, 0, 0, 0.65);
+  text-align: center;
+}
+
+.m-capture__panel {
+  flex: 0 0 auto;
+  padding: 12px 16px 20px;
+  background: var(--m-color-surface);
+  color: var(--m-color-text);
+}
+
+.m-capture__title {
+  margin: 0 0 4px;
+  font-weight: 600;
+}
+
+.m-ar {
+  justify-content: flex-end;
+  padding: 16px;
+  background: transparent;
+}
+
+.m-ar__message {
+  margin: 0 0 12px;
+  padding: 10px 14px;
+  border-radius: var(--m-radius);
+  background: rgba(0, 0, 0, 0.7);
+  color: #ffffff;
+}

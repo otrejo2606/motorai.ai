@@ -19,6 +19,8 @@ import type {
   Page,
   PersonRegistryLookup,
   PersonRegistryLookupRequest,
+  PhotoReviewItem,
+  PhotoReviewRequest,
   PhotoSlot,
   PhotoSlotCode,
   PhotoSlotUpdateRequest,
@@ -52,6 +54,7 @@ export const queryKeys = {
   identityVerifications: (status: string, page: number) =>
     ['backoffice', 'identity-verifications', status, page] as const,
   backofficeListings: (status: string, page: number) => ['backoffice', 'listings', status, page] as const,
+  photoReviews: (page: number) => ['backoffice', 'photo-reviews', page] as const,
 };
 
 // ---------- Publico ----------
@@ -480,6 +483,30 @@ export function useBackofficeListings(status: ListingStatus, page = 0) {
 
 export function usePublishListing() {
   return useListingTransition('publish');
+}
+
+/** Bandeja del analista: fotos UNCERTAIN, UNAVAILABLE o con una lectura que no calza (add-captura-guiada-fotos). */
+export function usePhotoReviews(page = 0) {
+  const client = useApiClient();
+  return useQuery({
+    queryKey: queryKeys.photoReviews(page),
+    queryFn: () => client.get<Page<PhotoReviewItem>>('/backoffice/photo-reviews', { page, size: DEFAULT_PAGE_SIZE }),
+    placeholderData: (previous) => previous,
+  });
+}
+
+/** Rechazar una foto de un anuncio en revision lo devuelve a borrador para que el vendedor la repita. */
+export function useReviewPhoto() {
+  const client = useApiClient();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ listingId, slot, body }: { listingId: Uuid; slot: PhotoSlotCode; body: PhotoReviewRequest }) =>
+      client.post<PhotoReviewItem>('/backoffice/photo-reviews/' + seg(listingId) + '/' + seg(slot), body),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['backoffice', 'photo-reviews'] });
+      void queryClient.invalidateQueries({ queryKey: ['backoffice', 'listings'] });
+    },
+  });
 }
 
 export function useUpdatePhotoSlot() {

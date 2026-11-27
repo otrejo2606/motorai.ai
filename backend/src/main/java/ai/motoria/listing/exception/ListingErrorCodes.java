@@ -15,6 +15,10 @@ public final class ListingErrorCodes {
     public static final String LISTING_PHOTO_INVALID = "LISTING_PHOTO_INVALID";
     public static final String LISTING_PHOTO_NOT_FOUND = "LISTING_PHOTO_NOT_FOUND";
     public static final String LISTING_PHOTO_CONFLICT = "LISTING_PHOTO_CONFLICT";
+    /** Review of the photo angle by the analyst (add-captura-guiada-fotos). */
+    public static final String LISTING_PHOTO_NOT_REVIEWABLE = "LISTING_PHOTO_NOT_REVIEWABLE";
+    public static final String LISTING_PHOTO_REVIEW_REASON_REQUIRED = "LISTING_PHOTO_REVIEW_REASON_REQUIRED";
+    public static final String LISTING_PHOTO_SELF_REVIEW_FORBIDDEN = "LISTING_PHOTO_SELF_REVIEW_FORBIDDEN";
 
     private ListingErrorCodes() {
     }

@@ -235,6 +235,23 @@ public class Listing {
         return photos.stream().map(ListingPhoto::getSlot).toList();
     }
 
+    /**
+     * Slots whose photo must be repeated: angle MISMATCH not accepted by the analyst, or rejected by the analyst
+     * (add-captura-guiada-fotos).
+     */
+    public List<String> photoSlotsToRepeat() {
+        return photos.stream().filter(ListingPhoto::mustBeRepeated).map(ListingPhoto::getSlot).toList();
+    }
+
+    /**
+     * The analyst rejected a photo of a listing waiting for review: it goes back to DRAFT so the seller can repeat it.
+     */
+    public void returnToDraft() {
+        ensureState(ListingStatus.PENDING_REVIEW);
+        this.status = ListingStatus.DRAFT;
+        touch();
+    }
+
     public void submitForReview() {
         ensureState(ListingStatus.DRAFT);
         this.status = ListingStatus.PENDING_REVIEW;

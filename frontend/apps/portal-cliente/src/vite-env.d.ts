@@ -13,6 +13,9 @@ interface ImportMetaEnv {
   readonly VITE_CURRENCY?: string;
   readonly VITE_MAX_DOCUMENT_MB?: string;
   readonly VITE_MAX_PHOTO_MB?: string;
+  readonly VITE_MEDIAPIPE_BASE_URL?: string;
+  readonly VITE_MEDIAPIPE_MODEL_URL?: string;
+  readonly VITE_AR_ENABLED?: string;
 }
 
 interface ImportMeta {

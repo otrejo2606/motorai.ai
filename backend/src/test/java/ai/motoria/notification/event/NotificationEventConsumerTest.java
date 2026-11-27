@@ -117,6 +117,36 @@ class NotificationEventConsumerTest {
     }
 
     @Test
+    void shouldDispatchPhotoReadingAnomalyFromTheListingModule() {
+        UUID correlationId = UUID.randomUUID();
+        UUID vehicleId = UUID.randomUUID();
+        UUID sellerId = UUID.randomUUID();
+
+        consumer.onVehicleRegistryEvent("""
+                {
+                  "correlationId": "%s",
+                  "eventType": "vehicle.registry.anomaly.detected",
+                  "sourceModule": "listing",
+                  "timestamp": "2026-11-27T20:00:00Z",
+                  "retryCount": 0,
+                  "payload": {
+                    "vehicleId": "%s",
+                    "sellerId": "%s",
+                    "anomalies": ["VIN_MISMATCH", "ODOMETER_MISMATCH"],
+                    "listingId": "%s"
+                  }
+                }
+                """.formatted(correlationId, vehicleId, sellerId, UUID.randomUUID()));
+
+        verify(notificationService).handleVehicleRegistryAnomaly(argThat(command ->
+                command.eventType() == EventType.VEHICLE_REGISTRY_ANOMALY_DETECTED
+                        && command.correlationId().equals(correlationId)
+                        && command.vehicleId().equals(vehicleId)
+                        && command.sellerId().equals(sellerId)
+                        && command.anomalies().equals(List.of("VIN_MISMATCH", "ODOMETER_MISMATCH"))));
+    }
+
+    @Test
     void shouldRejectMalformedJson() {
         assertThrows(IllegalArgumentException.class, () -> consumer.onListingEvent("{invalid-json"));
         verifyNoInteractions(notificationService);
