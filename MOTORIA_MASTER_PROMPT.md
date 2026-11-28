@@ -43,10 +43,13 @@ Storage
 S3 compatible storage
 
 Identity
-WSO2 Identity Server
+Keycloak (OIDC; roles in realm_access.roles)
 
-API Management
-WSO2 API Manager
+API Gateway
+Apache APISIX
+
+All infrastructure is open source. WSO2 was replaced on 2026-11-21 for being too heavy.
+The functional scope lives in openspec/ (see openspec/changes/define-plataforma-motoria).
 
 ---
 

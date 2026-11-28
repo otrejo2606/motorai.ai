@@ -1,0 +1,11 @@
+[project]
+name = "motoria-photo-classifier"
+version = "0.1.0"
+description = "Servicio de inferencia y entrenamiento del clasificador del ángulo de las fotos de Motoria"
+requires-python = ">=3.11,<3.12"
+# Mientras se use Ultralytics con la licencia gratuita, el servicio se distribuye bajo AGPL-3.0 (LICENSE-NOTICE.md).
+license = { text = "AGPL-3.0-only" }
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]

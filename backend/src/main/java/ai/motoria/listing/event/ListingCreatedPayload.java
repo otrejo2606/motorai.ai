@@ -8,7 +8,7 @@ import java.util.UUID;
 public record ListingCreatedPayload(
         UUID listingId,
         UUID sellerId,
-        UUID vehicleSpecId,
+        UUID vehicleId,
         ListingStatus status,
         BigDecimal price) {
 }

@@ -14,25 +14,21 @@ public class GlobalExceptionMapper implements ExceptionMapper<Exception> {
 
     @Override
     public Response toResponse(Exception exception) {
-        if (exception instanceof NotFoundException notFoundException) {
-            return build(Response.Status.NOT_FOUND, "NOT_FOUND", notFoundException.getMessage());
-        }
-        if (exception instanceof InvalidStateException invalidStateException) {
-            return build(Response.Status.CONFLICT, "INVALID_STATE", invalidStateException.getMessage());
-        }
-        if (exception instanceof ForbiddenOperationException forbiddenOperationException) {
-            return build(Response.Status.FORBIDDEN, "FORBIDDEN", forbiddenOperationException.getMessage());
+        if (exception instanceof MotoriaException motoriaException) {
+            return Response.status(motoriaException.getStatus())
+                    .entity(new ErrorResponse(
+                            motoriaException.getCode(),
+                            motoriaException.getMessage(),
+                            Instant.now(),
+                            motoriaException.getDetails()))
+                    .build();
         }
         if (exception instanceof ConstraintViolationException constraintViolationException) {
             return buildValidationError(constraintViolationException);
         }
         Log.error("Unhandled exception", exception);
-        return build(Response.Status.INTERNAL_SERVER_ERROR, "INTERNAL_ERROR", "An unexpected error occurred.");
-    }
-
-    private Response build(Response.Status status, String code, String message) {
-        return Response.status(status)
-                .entity(new ErrorResponse(code, message, Instant.now()))
+        return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                .entity(new ErrorResponse("INTERNAL_ERROR", "An unexpected error occurred.", Instant.now()))
                 .build();
     }
 

@@ -20,7 +20,7 @@ La ventaja defendible no es el listado, que es fácil de copiar, sino **el dato 
 3. Traspaso digital: tarifa de servicio aparte de honorarios notariales, impuesto de traspaso y timbres, que se trasladan transparentes.
 4. Seguros: comisión compartida con NEXUS Broker según su contrato.
 5. Crédito: comisión por expediente originado o por crédito formalizado, según convenio con cada banco.
-6. API de datos (WSO2 API Manager): valuación, historial e informe de inspección para bancos, aseguradoras y agencias.
+6. API de datos (expuesta por Apache APISIX, D4): valuación, historial e informe de inspección para bancos, aseguradoras y agencias.
 7. Promoción en redes (módulo `promotion`).
 
 ## D3. Fuentes de datos y riesgo (todo "por verificar" hasta tener documento)
@@ -46,7 +46,12 @@ Regla: cada dato guarda **fuente, vía, fecha de consulta y evidencia** (respues
 - Convención: los estados y códigos de enumeración se escriben en inglés (como en el código existente); los textos para el usuario, en español e inglés por i18n.
 - IA en el módulo `ai` con un registro de inferencias (`ai_inference`): modelo y versión, prompt o configuración, entradas por referencia, salida, confianza, explicación y revisor humano. Visión para daños y odómetro; LLM para el asistente, la lectura de documentos y la explicación del comparador.
 - Archivos (fotos, documentos, escrituras) en S3 con hash sha256, metadatos de captura y retención por tipo.
-- Identidad con WSO2 IS: roles `BUYER`, `SELLER`, `BACKOFFICE` y `ADMIN` (ya usados en el código; `BACKOFFICE` cubre a los analistas de revisión y cumplimiento) más los nuevos `DEALER` (agencia), `PARTNER` (aliado), `NOTARY`, `BANK` e `INSURANCE_BROKER` (NEXUS).
+- Identidad y gateway, todo open source (decisión del dueño del 2026-11-21: se descarta WSO2 IS y WSO2 APIM por peso):
+  - **Keycloak** (Apache 2.0) como proveedor OIDC: realm `motoria`, flujo authorization code con PKCE para los portales (clientes públicos `motoria-portal-cliente` y `motoria-backoffice`), cliente confidencial `motoria-backend`. Los roles son roles de realm en el claim `realm_access.roles`; Quarkus los lee con `quarkus.oidc.roles.role-claim-path=realm_access/roles`. El id de usuario es el claim `sub`. Más adelante: federación con firma digital BCCR o con el proveedor de identidad elegido como proveedor de identidad externo de Keycloak.
+  - **Apache APISIX** (Apache 2.0) como API gateway: TLS, enrutamiento, límite de peticiones, plugin `openid-connect` para validar el JWT de Keycloak en el borde, reescritura de `X-Forwarded-For` (lo pide `RateLimitingFilter`) y métricas Prometheus. Para la API de datos de F8: consumidores con `key-auth` o `jwt-auth`, cuotas con `limit-count` y registro de uso para facturar. El portal de desarrolladores queda para F8: un portal propio sobre los consumidores de APISIX o Gravitee APIM CE si hace falta uno completo.
+  - Alternativa más liviana evaluada: KrakenD CE (sin estado, configuración por archivo), descartada porque la gestión de consumidores y cuotas que necesita F8 es de su edición empresarial.
+  - El backend sigue validando el token por sí mismo (`quarkus-oidc`) y aplica `@RolesAllowed`; el gateway es una defensa adicional, no la única.
+- Roles: `BUYER`, `SELLER`, `BACKOFFICE` y `ADMIN` (ya usados en el código; `BACKOFFICE` cubre a los analistas de revisión y cumplimiento) más los nuevos `DEALER` (agencia), `PARTNER` (aliado), `NOTARY`, `BANK` e `INSURANCE_BROKER` (NEXUS).
 - Portales: cliente (comprar y vender), backoffice (analistas, revisión de IA, cumplimiento), admin (configuración) y **portal de aliados** (agenda y captura), más el portal del notario y el del banco como vistas restringidas del backoffice.
 
 ## D5. Flujo de punta a punta

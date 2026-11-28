@@ -1,0 +1,12 @@
+# Imagen del servicio de inferencia en CPU (Dockerfile).
+# Ultralytics es AGPL-3.0: ver LICENSE-NOTICE.md antes de desplegar.
+--extra-index-url https://download.pytorch.org/whl/cpu
+-r requirements-api.txt
+# La VM de IA es aarch64 (Ampere): ahí las ruedas de PyPI ya son solo CPU y no llevan el sufijo +cpu.
+torch==2.6.0+cpu; platform_machine == "x86_64"
+torchvision==0.21.0+cpu; platform_machine == "x86_64"
+torch==2.6.0; platform_machine == "aarch64"
+torchvision==0.21.0; platform_machine == "aarch64"
+ultralytics==8.3.100
+onnx==1.17.0
+onnxruntime==1.20.1

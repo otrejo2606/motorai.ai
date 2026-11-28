@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -36,7 +37,7 @@ class NotificationEventConsumerTest {
                   "payload": {
                     "listingId": "%s",
                     "sellerId": "%s",
-                    "vehicleSpecId": "%s",
+                    "vehicleId": "%s",
                     "status": "DRAFT",
                     "price": 21000
                   }
@@ -84,6 +85,65 @@ class NotificationEventConsumerTest {
                 """.formatted(UUID.randomUUID(), UUID.randomUUID()));
 
         verifyNoInteractions(notificationService);
+    }
+
+    @Test
+    void shouldDispatchVehicleRegistryAnomalyToTheSeller() {
+        UUID correlationId = UUID.randomUUID();
+        UUID vehicleId = UUID.randomUUID();
+        UUID sellerId = UUID.randomUUID();
+
+        consumer.onVehicleRegistryEvent("""
+                {
+                  "correlationId": "%s",
+                  "eventType": "vehicle.registry.anomaly.detected",
+                  "sourceModule": "vehicle",
+                  "timestamp": "2026-11-26T20:00:00Z",
+                  "retryCount": 0,
+                  "payload": {
+                    "vehicleId": "%s",
+                    "sellerId": "%s",
+                    "anomalies": ["OWNER_MISMATCH", "PLEDGE"]
+                  }
+                }
+                """.formatted(correlationId, vehicleId, sellerId));
+
+        verify(notificationService).handleVehicleRegistryAnomaly(argThat(command ->
+                command.eventType() == EventType.VEHICLE_REGISTRY_ANOMALY_DETECTED
+                        && command.correlationId().equals(correlationId)
+                        && command.vehicleId().equals(vehicleId)
+                        && command.sellerId().equals(sellerId)
+                        && command.anomalies().equals(List.of("OWNER_MISMATCH", "PLEDGE"))));
+    }
+
+    @Test
+    void shouldDispatchPhotoReadingAnomalyFromTheListingModule() {
+        UUID correlationId = UUID.randomUUID();
+        UUID vehicleId = UUID.randomUUID();
+        UUID sellerId = UUID.randomUUID();
+
+        consumer.onVehicleRegistryEvent("""
+                {
+                  "correlationId": "%s",
+                  "eventType": "vehicle.registry.anomaly.detected",
+                  "sourceModule": "listing",
+                  "timestamp": "2026-11-27T20:00:00Z",
+                  "retryCount": 0,
+                  "payload": {
+                    "vehicleId": "%s",
+                    "sellerId": "%s",
+                    "anomalies": ["VIN_MISMATCH", "ODOMETER_MISMATCH"],
+                    "listingId": "%s"
+                  }
+                }
+                """.formatted(correlationId, vehicleId, sellerId, UUID.randomUUID()));
+
+        verify(notificationService).handleVehicleRegistryAnomaly(argThat(command ->
+                command.eventType() == EventType.VEHICLE_REGISTRY_ANOMALY_DETECTED
+                        && command.correlationId().equals(correlationId)
+                        && command.vehicleId().equals(vehicleId)
+                        && command.sellerId().equals(sellerId)
+                        && command.anomalies().equals(List.of("VIN_MISMATCH", "ODOMETER_MISMATCH"))));
     }
 
     @Test

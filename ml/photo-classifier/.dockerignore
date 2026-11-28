@@ -1,0 +1,10 @@
+# Solo entran a la imagen service/, los requirements y los avisos de licencia.
+**
+!service/
+!service/**
+!requirements-api.txt
+!requirements.txt
+!LICENSE-NOTICE.md
+!README.md
+**/__pycache__
+**/*.pyc

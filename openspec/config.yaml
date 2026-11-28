@@ -9,7 +9,8 @@ context: |
   comparador del mismo rango, cotización de seguros con varias aseguradoras vía NEXUS Broker (corredora
   licenciada SUGESE), traspaso notarial digital con firma digital BCCR y precalificación de crédito para bancos.
   Stack: Java 17 (maven.compiler.release del pom) + Quarkus, React + TypeScript (portal cliente, admin y backoffice), PostgreSQL, RabbitMQ con
-  outbox transaccional, Redis, almacenamiento S3, WSO2 Identity Server y WSO2 API Manager.
+  outbox transaccional, Redis, almacenamiento S3, Keycloak (identidad, OIDC) y Apache APISIX (API gateway),
+  todo open source; WSO2 quedó descartado por peso (decisión del dueño, 2026-11-21).
   Principios: arquitectura limpia por módulo de dominio (domain, dto, repository, service, rest, mapper,
   integration, event, exception), integraciones externas aisladas detrás de puertos, "IA sugiere, humano decide",
   decisiones de IA trazables, auditables y explicables, nada en código duro (tarifas, aseguradoras, reglas en
