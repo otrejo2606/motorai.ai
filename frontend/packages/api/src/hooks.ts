@@ -17,12 +17,15 @@ import type {
   ListingSummary,
   ListingUpsertRequest,
   Page,
+  PersonRegistryLookup,
+  PersonRegistryLookupRequest,
   PhotoSlot,
   PhotoSlotCode,
   PhotoSlotUpdateRequest,
   Profile,
   ProfileUpdateRequest,
   ReadUrl,
+  RegistryLookupResult,
   RegistryRequestTask,
   RegistryReviewDetail,
   RegistryReviewSummary,
@@ -220,6 +223,20 @@ export function useAttachRegistryDocument() {
     mutationFn: ({ vehicleId, mediaId }: { vehicleId: Uuid; mediaId: Uuid }) =>
       client.post<Vehicle>('/vehicles/' + seg(vehicleId) + '/registry-documents', { mediaId }),
     onSuccess: (vehicle, variables) => queryClient.setQueryData(queryKeys.vehicle(variables.vehicleId), vehicle),
+  });
+}
+
+/**
+ * Consulta la placa en el Registro Nacional por convenio (Credid). Siempre responde 200 salvo errores propios del
+ * vehiculo; si registryLookupStatus no es FOUND ni REUSED, el vendedor sube el informe PDF.
+ */
+export function useRegistryLookup() {
+  const client = useApiClient();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (vehicleId: Uuid) =>
+      client.post<RegistryLookupResult>('/vehicles/' + seg(vehicleId) + '/registry-lookup'),
+    onSuccess: (result, vehicleId) => queryClient.setQueryData(queryKeys.vehicle(vehicleId), result.vehicle),
   });
 }
 
@@ -428,6 +445,26 @@ export function useRejectIdentityVerification() {
         reason,
       }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['backoffice', 'identity-verifications'] }),
+  });
+}
+
+/** Vuelve a cotejar con el registro de personas un caso en revision (reusa la consulta vigente, no paga dos veces). */
+export function useRecheckIdentityRegistry() {
+  const client = useApiClient();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: Uuid) =>
+      client.post<BackofficeIdentityVerification>('/backoffice/identity-verifications/' + seg(id) + '/registry-check'),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['backoffice', 'identity-verifications'] }),
+  });
+}
+
+/** Consulta de una persona por documento; la cedula viaja en el cuerpo, nunca en la URL. */
+export function usePersonRegistryLookup() {
+  const client = useApiClient();
+  return useMutation({
+    mutationFn: (request: PersonRegistryLookupRequest) =>
+      client.post<PersonRegistryLookup>('/backoffice/person-registry/lookups', request),
   });
 }
 

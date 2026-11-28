@@ -3,9 +3,11 @@ package ai.motoria.vehicle.rest;
 import ai.motoria.vehicle.dto.AttachRegistryDocumentRequest;
 import ai.motoria.vehicle.dto.CreateRegistryRequestRequest;
 import ai.motoria.vehicle.dto.RegisterVehicleRequest;
+import ai.motoria.vehicle.dto.RegistryLookupResponse;
 import ai.motoria.vehicle.dto.RegistryRequestResponse;
 import ai.motoria.vehicle.dto.VehicleResponse;
 import ai.motoria.vehicle.service.RegistryRequestService;
+import ai.motoria.vehicle.service.VehicleRegistryLookupService;
 import ai.motoria.vehicle.service.VehicleService;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Inject;
@@ -33,6 +35,9 @@ public class VehicleResource {
     @Inject
     RegistryRequestService registryRequestService;
 
+    @Inject
+    VehicleRegistryLookupService vehicleRegistryLookupService;
+
     @POST
     public VehicleResponse register(@Valid RegisterVehicleRequest request) {
         return vehicleService.register(request);
@@ -50,6 +55,17 @@ public class VehicleResource {
     public VehicleResponse attachRegistryDocument(@PathParam("vehicleId") UUID vehicleId,
                                                   @Valid AttachRegistryDocumentRequest request) {
         return vehicleService.attachRegistryDocument(vehicleId, request.mediaId());
+    }
+
+    /**
+     * Registry lookup by plate (Credid). Answers 200 even when the registry cannot answer: registryLookupStatus tells
+     * the seller to upload the registry PDF instead.
+     */
+    @POST
+    @Path("/{vehicleId}/registry-lookup")
+    @RolesAllowed({"SELLER", "DEALER", "ADMIN"})
+    public RegistryLookupResponse lookUpRegistry(@PathParam("vehicleId") UUID vehicleId) {
+        return vehicleRegistryLookupService.lookup(vehicleId);
     }
 
     @POST

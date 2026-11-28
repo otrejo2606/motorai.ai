@@ -4,6 +4,7 @@ import ai.motoria.user.domain.Consent;
 import ai.motoria.user.domain.ConsentType;
 import ai.motoria.user.domain.IdType;
 import ai.motoria.user.domain.IdentityVerification;
+import ai.motoria.user.domain.PersonRegistryCheck;
 import ai.motoria.user.domain.UserProfile;
 import ai.motoria.user.dto.BackofficeIdentityVerificationResponse;
 import ai.motoria.user.dto.ConsentResponse;
@@ -44,8 +45,11 @@ public interface UserMapper {
     @Mapping(target = "expiresAt", source = "challengeExpiresAt")
     IdentityChallengeResponse toChallengeResponse(IdentityVerification verification);
 
+    /**
+     * @param check registry check recorded on the verification, or null
+     */
     default BackofficeIdentityVerificationResponse toBackofficeResponse(
-            IdentityVerification verification, UserProfile profile, IdType idType) {
+            IdentityVerification verification, UserProfile profile, IdType idType, PersonRegistryCheck check) {
         return new BackofficeIdentityVerificationResponse(
                 verification.getId(),
                 verification.getUserId(),
@@ -60,6 +64,12 @@ public interface UserMapper {
                 verification.getSubmittedAt(),
                 verification.getReviewedBy(),
                 verification.getReviewedAt(),
-                verification.getRejectionReason());
+                verification.getRejectionReason(),
+                verification.getRegistryStatus(),
+                check != null ? check.getProvider() : null,
+                check != null ? check.getPersonType() : null,
+                check != null ? check.getFullName() : null,
+                check != null ? check.getDocumentExpiresOn() : null,
+                check != null ? check.getCheckedAt() : null);
     }
 }

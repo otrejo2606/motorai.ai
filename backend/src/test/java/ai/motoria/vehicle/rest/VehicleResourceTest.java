@@ -4,11 +4,15 @@ import ai.motoria.common.dto.PageResponse;
 import ai.motoria.common.exception.ForbiddenOperationException;
 import ai.motoria.common.exception.InvalidRequestException;
 import ai.motoria.common.port.OwnershipMatch;
+import ai.motoria.vehicle.domain.RegistryAnomaly;
+import ai.motoria.vehicle.domain.RegistryLookupStatus;
 import ai.motoria.vehicle.domain.VehicleStatus;
 import ai.motoria.vehicle.dto.FeeResponse;
+import ai.motoria.vehicle.dto.RegistryLookupResponse;
 import ai.motoria.vehicle.dto.VehicleResponse;
 import ai.motoria.vehicle.service.RegistryRequestService;
 import ai.motoria.vehicle.service.RegistryReviewService;
+import ai.motoria.vehicle.service.VehicleRegistryLookupService;
 import ai.motoria.vehicle.service.VehicleService;
 import io.quarkus.redis.datasource.RedisDataSource;
 import io.quarkus.redis.datasource.keys.KeyCommands;
@@ -47,6 +51,9 @@ class VehicleResourceTest {
 
     @InjectMock
     RegistryRequestService registryRequestService;
+
+    @InjectMock
+    VehicleRegistryLookupService vehicleRegistryLookupService;
 
     @InjectMock
     RedisDataSource redisDataSource;
@@ -195,6 +202,72 @@ class VehicleResourceTest {
                 .get("/backoffice/registry-requests?status=PENDING")
                 .then()
                 .statusCode(200);
+    }
+
+    @Test
+    @TestSecurity(user = "seller-1", roles = "SELLER")
+    void sellerCanLookUpTheRegistryByPlate() {
+        UUID vehicleId = UUID.randomUUID();
+        when(vehicleRegistryLookupService.lookup(vehicleId)).thenReturn(new RegistryLookupResponse(
+                RegistryLookupStatus.FOUND, null, List.of(RegistryAnomaly.PLEDGE), vehicle()));
+
+        given()
+                .contentType("application/json")
+                .when()
+                .post("/vehicles/%s/registry-lookup".formatted(vehicleId))
+                .then()
+                .statusCode(200)
+                .body("registryLookupStatus", equalTo("FOUND"))
+                .body("anomalies[0]", equalTo("PLEDGE"));
+    }
+
+    @Test
+    @TestSecurity(user = "seller-1", roles = "SELLER")
+    void registryUnavailableShouldNotBeAServerError() {
+        UUID vehicleId = UUID.randomUUID();
+        when(vehicleRegistryLookupService.lookup(vehicleId)).thenReturn(new RegistryLookupResponse(
+                RegistryLookupStatus.UNAVAILABLE, "VEHICLE_REGISTRY_UNAVAILABLE", List.of(), vehicle()));
+
+        given()
+                .contentType("application/json")
+                .when()
+                .post("/vehicles/%s/registry-lookup".formatted(vehicleId))
+                .then()
+                .statusCode(200)
+                .body("registryLookupStatus", equalTo("UNAVAILABLE"))
+                .body("errorCode", equalTo("VEHICLE_REGISTRY_UNAVAILABLE"));
+    }
+
+    @Test
+    @TestSecurity(user = "analyst-1", roles = "BACKOFFICE")
+    void analystCannotLookUpTheRegistryAsSeller() {
+        given()
+                .contentType("application/json")
+                .when()
+                .post("/vehicles/%s/registry-lookup".formatted(UUID.randomUUID()))
+                .then()
+                .statusCode(403);
+    }
+
+    @Test
+    @TestSecurity(user = "buyer-1", roles = "BUYER")
+    void buyerCannotLookUpTheRegistry() {
+        given()
+                .contentType("application/json")
+                .when()
+                .post("/vehicles/%s/registry-lookup".formatted(UUID.randomUUID()))
+                .then()
+                .statusCode(403);
+    }
+
+    @Test
+    void anonymousCannotLookUpTheRegistry() {
+        given()
+                .contentType("application/json")
+                .when()
+                .post("/vehicles/%s/registry-lookup".formatted(UUID.randomUUID()))
+                .then()
+                .statusCode(401);
     }
 
     private VehicleResponse vehicle() {

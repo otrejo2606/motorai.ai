@@ -7,7 +7,9 @@ import org.junit.jupiter.api.Test;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.EnumMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -129,6 +131,129 @@ class VehicleTest {
         vehicle.awaitRegistryRequest();
 
         assertEquals(VehicleStatus.REGISTRY_PENDING, vehicle.getStatus());
+    }
+
+    @Test
+    void agreementDataShouldUseTheAgreementSourceWithoutDocument() {
+        Vehicle vehicle = Vehicle.register("CR", "ABC123", UUID.randomUUID());
+        UUID seller = UUID.randomUUID();
+
+        vehicle.applyAgreementLookup(agreementValues(), false, null, seller, ReviewReason.AGREEMENT_REVIEW, Instant.now());
+
+        assertEquals(VehicleStatus.REGISTRY_IN_REVIEW, vehicle.getStatus());
+        assertEquals(RegistrySource.AGREEMENT, vehicle.getRegistrySource());
+        assertEquals(ReviewReason.AGREEMENT_REVIEW, vehicle.getReviewReason());
+        assertEquals(seller, vehicle.getRequestedBy());
+        assertNull(vehicle.getRegistryDocumentMediaId());
+        VehicleAttribute brand = vehicle.findAttribute(VehicleAttributeKey.BRAND).orElseThrow();
+        assertEquals(AttributeSource.REGISTRY_AGREEMENT, brand.getSource());
+        assertNull(brand.getEvidenceMediaId());
+        assertNull(brand.getEvidencePage());
+        assertNull(brand.getConfidence());
+        assertFalse(vehicle.isAwaitingExtraction(UUID.randomUUID()));
+    }
+
+    @Test
+    void approvedAgreementDataShouldBeCheckedNowAndPledgeBlocksTransfer() {
+        Vehicle vehicle = Vehicle.register("CR", "ABC123", UUID.randomUUID());
+        Instant now = Instant.now();
+        vehicle.applyAgreementLookup(agreementValues(), true, "5000000",
+                UUID.randomUUID(), ReviewReason.AGREEMENT_REVIEW, now);
+
+        vehicle.approve(now);
+
+        assertEquals(VehicleStatus.REGISTRY_VERIFIED, vehicle.getStatus());
+        assertEquals(now, vehicle.getRegistryCheckedAt());
+        assertTrue(vehicle.isTransferBlocked());
+        assertEquals("PLEDGE", vehicle.getTransferBlockReason());
+        assertEquals(EncumbranceType.PLEDGE, vehicle.getEncumbrances().get(0).getType());
+    }
+
+    @Test
+    void agreementDataShouldReplaceDocumentValuesAndDropTheOnesNotReceived() {
+        Vehicle vehicle = inReview();
+        vehicle.applyExtraction(UUID.randomUUID(), List.of(
+                        new ExtractedValue("BRAND", "TOYOTA", 1, 0.99),
+                        new ExtractedValue("STYLE", "SEDAN", 1, 0.99)),
+                List.of(new ExtractedEncumbrance("SEIZURE", "Embargo", 2, 0.9)),
+                LocalDate.now(), ReviewReason.MANUAL_REVIEW_DEFAULT, Instant.now());
+        vehicle.reject("Documento ilegible");
+
+        vehicle.applyAgreementLookup(agreementValues(), false, null, UUID.randomUUID(), ReviewReason.AGREEMENT_REVIEW,
+                Instant.now());
+
+        assertEquals(AttributeSource.REGISTRY_AGREEMENT, vehicle.findAttribute(VehicleAttributeKey.BRAND).orElseThrow().getSource());
+        assertTrue(vehicle.findAttribute(VehicleAttributeKey.STYLE).isEmpty());
+        assertTrue(vehicle.getEncumbrances().isEmpty());
+        assertNull(vehicle.getRejectionReason());
+    }
+
+    @Test
+    void agreementDataCannotBeAppliedWhileWaitingForTheAnalyst() {
+        Vehicle vehicle = inReview();
+
+        assertFalse(vehicle.canApplyAgreementLookup());
+        assertThrows(IllegalStateException.class, () -> vehicle.applyAgreementLookup(agreementValues(), false, null,
+                UUID.randomUUID(), ReviewReason.AGREEMENT_REVIEW, Instant.now()));
+    }
+
+    @Test
+    void agreementDataShouldStayFreshForItsOwnMaximumAge() {
+        Vehicle vehicle = Vehicle.register("CR", "ABC123", UUID.randomUUID());
+        Instant now = Instant.now();
+        vehicle.applyAgreementLookup(agreementValues(), false, null, UUID.randomUUID(), ReviewReason.AGREEMENT_REVIEW, now);
+        vehicle.approve(now);
+        Duration agreementMaxAge = Duration.ofDays(90);
+
+        Instant in40Days = now.plus(Duration.ofDays(40));
+        assertTrue(vehicle.hasFreshAgreementData(in40Days, agreementMaxAge));
+        assertFalse(vehicle.isRegistryStale(in40Days, MAX_AGE, agreementMaxAge));
+        assertFalse(vehicle.canReceiveRegistryDocument(in40Days, MAX_AGE, agreementMaxAge));
+
+        Instant in100Days = now.plus(Duration.ofDays(100));
+        assertFalse(vehicle.hasFreshAgreementData(in100Days, agreementMaxAge));
+        assertTrue(vehicle.canReceiveRegistryDocument(in100Days, MAX_AGE, agreementMaxAge));
+    }
+
+    @Test
+    void documentDataShouldKeepTheDocumentMaximumAge() {
+        Vehicle vehicle = inReview();
+        vehicle.applyExtraction(UUID.randomUUID(), values(), List.of(), LocalDate.now(),
+                ReviewReason.MANUAL_REVIEW_DEFAULT, Instant.now());
+        vehicle.approve(Instant.now());
+
+        assertEquals(RegistrySource.DOCUMENT, vehicle.getRegistrySource());
+        Instant in40Days = Instant.now().plus(Duration.ofDays(40));
+        assertTrue(vehicle.isRegistryStale(in40Days, MAX_AGE, Duration.ofDays(90)));
+        assertTrue(vehicle.canReceiveRegistryDocument(in40Days, MAX_AGE, Duration.ofDays(90)));
+        assertFalse(vehicle.hasFreshAgreementData(Instant.now(), Duration.ofDays(90)));
+    }
+
+    @Test
+    void documentCanReplaceStaleAgreementData() {
+        Vehicle vehicle = Vehicle.register("CR", "ABC123", UUID.randomUUID());
+        Instant now = Instant.now();
+        vehicle.applyAgreementLookup(agreementValues(), false, null, UUID.randomUUID(), ReviewReason.AGREEMENT_REVIEW, now);
+        vehicle.approve(now);
+        UUID mediaId = UUID.randomUUID();
+
+        vehicle.attachRegistryDocument(mediaId, UUID.randomUUID(), now.plus(Duration.ofDays(100)), MAX_AGE,
+                Duration.ofDays(90));
+
+        assertEquals(VehicleStatus.REGISTRY_IN_REVIEW, vehicle.getStatus());
+        assertEquals(RegistrySource.DOCUMENT, vehicle.getRegistrySource());
+        assertTrue(vehicle.isAwaitingExtraction(mediaId));
+    }
+
+    private Map<VehicleAttributeKey, String> agreementValues() {
+        Map<VehicleAttributeKey, String> values = new EnumMap<>(VehicleAttributeKey.class);
+        values.put(VehicleAttributeKey.BRAND, "TOYOTA");
+        values.put(VehicleAttributeKey.MODEL, "COROLLA");
+        values.put(VehicleAttributeKey.YEAR, "2019");
+        values.put(VehicleAttributeKey.VIN, "JTDBR32E720123456");
+        values.put(VehicleAttributeKey.OWNER_ID_HASH, "abc");
+        values.put(VehicleAttributeKey.OWNER_NAME, "PROPIETARIO DE PRUEBA");
+        return values;
     }
 
     private Vehicle inReview() {

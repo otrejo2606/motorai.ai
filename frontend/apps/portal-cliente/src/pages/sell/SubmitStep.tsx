@@ -44,7 +44,7 @@ export function SubmitStep({ listingId, go }: WizardProps) {
         <Button loading={submit.isPending} disabled={!identityOk} onClick={() => submit.mutate(listingId)}>
           {t('sell.submit.button')}
         </Button>
-        <Button variant="secondary" onClick={() => go('photos')}>
+        <Button variant="secondary" onClick={() => go('vehicle')}>
           {t('common.back')}
         </Button>
       </div>

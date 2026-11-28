@@ -4,7 +4,7 @@ import { useVehicle } from '@motoria/api';
 import { Alert, AttributeList, Badge, Button, Card, ErrorAlert, Loading, useBlockedReason } from '@motoria/ui';
 import type { WizardProps } from './wizard';
 
-export function VehicleReviewStep({ vehicleId, go }: WizardProps) {
+export function VehicleReviewStep({ vehicleId, listingId, go }: WizardProps) {
   const { t } = useTranslation();
   const blockedReason = useBlockedReason();
   const vehicle = useVehicle(vehicleId);
@@ -69,7 +69,8 @@ export function VehicleReviewStep({ vehicleId, go }: WizardProps) {
       ) : null}
 
       <div className="m-actions">
-        <Button onClick={() => go('data')}>{t('sell.vehicle.confirm')}</Button>
+        {/* Datos y fotos ya se cargaron antes de la consulta al registro: se sigue al envio. */}
+        <Button onClick={() => go(listingId ? 'submit' : 'data')}>{t('sell.vehicle.confirm')}</Button>
       </div>
     </>
   );

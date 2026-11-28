@@ -52,6 +52,23 @@ class IdentityVerificationTest {
     }
 
     @Test
+    void registryCheckIsRecordedOnlyWhileWaitingForReview() {
+        Instant now = Instant.now();
+        IdentityVerification verification = issued(now.plusSeconds(600));
+        UUID checkId = UUID.randomUUID();
+
+        assertThrows(IllegalStateException.class,
+                () -> verification.recordRegistryCheck(RegistryMatchStatus.MATCH, checkId));
+
+        verification.submit(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), now);
+        verification.recordRegistryCheck(RegistryMatchStatus.NAME_MISMATCH, checkId);
+
+        assertEquals(RegistryMatchStatus.NAME_MISMATCH, verification.getRegistryStatus());
+        assertEquals(checkId, verification.getRegistryCheckId());
+        assertEquals(IdentityVerificationStatus.SUBMITTED, verification.getStatus());
+    }
+
+    @Test
     void identityLevelNeverDecreases() {
         UserProfile profile = UserProfile.create(UUID.randomUUID(), null, "CR");
         profile.raiseIdentityLevel(IdentityLevel.LEVEL_2, "MANUAL", "ref");

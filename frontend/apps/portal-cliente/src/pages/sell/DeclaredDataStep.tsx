@@ -248,7 +248,7 @@ export function DeclaredDataStep({ vehicleId, listingId, go }: WizardProps) {
         <Button type="submit" loading={save.isPending} disabled={!editable}>
           {t('sell.data.saveAndContinue')}
         </Button>
-        <Button variant="secondary" onClick={() => go('vehicle')}>
+        <Button variant="secondary" onClick={() => go('plate')}>
           {t('common.back')}
         </Button>
       </div>

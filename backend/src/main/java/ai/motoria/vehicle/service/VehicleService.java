@@ -130,7 +130,8 @@ public class VehicleService {
 
     public void attach(Vehicle vehicle, UUID mediaId, UUID requester) {
         try {
-            vehicle.attachRegistryDocument(mediaId, requester, Instant.now(), settings.documentMaxAge());
+            vehicle.attachRegistryDocument(mediaId, requester, Instant.now(), settings.documentMaxAge(),
+                    settings.agreementMaxAge());
         } catch (IllegalStateException exception) {
             throw new InvalidStateException(VehicleErrorCodes.VEHICLE_INVALID_STATE,
                     "The vehicle cannot receive a registry document now");

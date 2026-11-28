@@ -21,6 +21,7 @@ public enum EventType {
     VEHICLE_REGISTRY_REQUESTED("vehicle.registry.requested"),
     VEHICLE_REGISTRY_COMPLETED("vehicle.registry.completed"),
     VEHICLE_REGISTRY_REVIEW_REQUIRED("vehicle.registry.review.required"),
+    VEHICLE_REGISTRY_ANOMALY_DETECTED("vehicle.registry.anomaly.detected"),
     NOTIFICATION_SEND("notification.send");
 
     private final String routingKey;

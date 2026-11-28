@@ -86,8 +86,27 @@ export const REVIEW_REASONS = [
   'PLATE_MISMATCH',
   'MISSING_REQUIRED',
   'EXTRACTION_FAILED',
+  'AGREEMENT_REVIEW',
 ] as const;
 export type ReviewReason = (typeof REVIEW_REASONS)[number];
+
+/** Origen de los datos registrales: informe PDF o convenio con el Registro Nacional (Credid). */
+export const REGISTRY_SOURCES = ['DOCUMENT', 'AGREEMENT'] as const;
+export type RegistrySource = (typeof REGISTRY_SOURCES)[number];
+
+/** Resultado de la consulta por placa; FOUND y REUSED traen datos, el resto pide el informe PDF. */
+export const REGISTRY_LOOKUP_STATUSES = [
+  'FOUND',
+  'REUSED',
+  'NOT_FOUND',
+  'UNAVAILABLE',
+  'NOT_CONFIGURED',
+  'QUOTA_EXHAUSTED',
+] as const;
+export type RegistryLookupStatus = (typeof REGISTRY_LOOKUP_STATUSES)[number];
+
+export const REGISTRY_ANOMALIES = ['OWNER_MISMATCH', 'PLEDGE'] as const;
+export type RegistryAnomaly = (typeof REGISTRY_ANOMALIES)[number];
 
 export const OWNERSHIP_MATCHES = ['MATCH', 'MISMATCH', 'UNKNOWN'] as const;
 export type OwnershipMatch = (typeof OWNERSHIP_MATCHES)[number];
@@ -160,6 +179,25 @@ export type ConsentType = (typeof CONSENT_TYPES)[number];
 
 export const IDENTITY_VERIFICATION_STATUSES = ['CHALLENGE_ISSUED', 'SUBMITTED', 'APPROVED', 'REJECTED', 'EXPIRED'] as const;
 export type IdentityVerificationStatus = (typeof IDENTITY_VERIFICATION_STATUSES)[number];
+
+/** Comparacion del perfil con el registro de personas (Credid). Informativa: decide el analista. */
+export const REGISTRY_MATCH_STATUSES = [
+  'MATCH',
+  'NAME_MISMATCH',
+  'NOT_FOUND',
+  'DOCUMENT_EXPIRED',
+  'UNAVAILABLE',
+  'NOT_APPLICABLE',
+] as const;
+export type RegistryMatchStatus = (typeof REGISTRY_MATCH_STATUSES)[number];
+
+/** F persona fisica, J persona juridica, E extranjero. */
+export const PERSON_TYPES = ['F', 'J', 'E'] as const;
+export type PersonType = (typeof PERSON_TYPES)[number];
+
+/** Tipos de documento que el registro de personas puede consultar (el pasaporte no). */
+export const REGISTRY_ID_TYPES = ['NATIONAL_ID', 'RESIDENT_ID'] as const;
+export type RegistryIdType = (typeof REGISTRY_ID_TYPES)[number];
 
 export const REGISTRY_REQUEST_STATUSES = ['PENDING', 'FULFILLED', 'CANCELLED'] as const;
 export type RegistryRequestStatus = (typeof REGISTRY_REQUEST_STATUSES)[number];
@@ -317,6 +355,15 @@ export interface CreateVehicleRequest {
   plate: string;
 }
 
+/** Respuesta de POST /vehicles/{id}/registry-lookup (nunca 5xx por fallas del registro). */
+export interface RegistryLookupResult {
+  registryLookupStatus: RegistryLookupStatus;
+  /** Codigo estable (VEHICLE_REGISTRY_*) cuando el registro no pudo responder. */
+  errorCode: string | null;
+  anomalies: RegistryAnomaly[];
+  vehicle: Vehicle;
+}
+
 export interface RegistryRequestTask {
   id: Uuid;
   vehicleId: Uuid;
@@ -453,6 +500,35 @@ export interface BackofficeIdentityVerification {
   reviewedBy: string | null;
   reviewedAt: IsoDateTime | null;
   rejectionReason: string | null;
+  registryStatus: RegistryMatchStatus | null;
+  registryProvider: string | null;
+  registryPersonType: PersonType | null;
+  registryFullName: string | null;
+  /** Fecha sin hora (yyyy-MM-dd). */
+  registryDocumentExpiresOn: string | null;
+  registryCheckedAt: IsoDateTime | null;
+}
+
+// ---------- Backoffice: registro de personas ----------
+
+export interface PersonRegistryLookupRequest {
+  idType: RegistryIdType;
+  idNumber: string;
+  reason: string;
+  refresh?: boolean;
+}
+
+export interface PersonRegistryLookup {
+  found: boolean;
+  provider: string;
+  personType: PersonType | null;
+  fullName: string | null;
+  /** Fecha sin hora (yyyy-MM-dd). */
+  documentExpiresOn: string | null;
+  documentExpired: boolean;
+  nationality: string | null;
+  checkedAt: IsoDateTime;
+  fromCache: boolean;
 }
 
 // ---------- Backoffice: revision registral ----------
@@ -498,4 +574,6 @@ export interface RegistryReviewDetail {
   pages: ReviewPage[];
   attributes: ReviewAttribute[];
   encumbrances: Encumbrance[];
+  /** AGREEMENT: datos del convenio, sin documento ni paginas. */
+  registrySource: RegistrySource | null;
 }
