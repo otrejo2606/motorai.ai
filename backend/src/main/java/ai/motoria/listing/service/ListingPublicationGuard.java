@@ -35,6 +35,9 @@ public class ListingPublicationGuard {
     @Inject
     MediaPort mediaPort;
 
+    @Inject
+    ListingPhotoReadingChecker readingChecker;
+
     public void assertPublishable(Listing listing) {
         Optional<VehicleSnapshot> vehicle = vehicleRegistryPort.findVehicle(listing.getVehicleId());
         boolean verified = vehicle.map(VehicleSnapshot::isRegistryVerified).orElse(false);
@@ -62,8 +65,13 @@ public class ListingPublicationGuard {
                 .map(PhotoSlotSnapshot::code)
                 .toList();
 
+        // The photos are usually taken before the registry lookup: what they read (VIN, odometer) is compared again here
+        // with the registry VIN and the declared mileage (add-captura-guiada-fotos). Anomalies never block; a photo that
+        // must be repeated (angle MISMATCH or rejected by the analyst) does.
+        readingChecker.check(listing, vehicle.orElse(null));
         ListingPublicationPolicy.Result result = ListingPublicationPolicy.evaluate(
-                listing.isContentComplete(), verified, identityRank, ownership, requiredSlots, listing.photoSlots());
+                listing.isContentComplete(), verified, identityRank, ownership, requiredSlots, listing.photoSlots(),
+                listing.photoSlotsToRepeat());
         if (!result.publishable()) {
             List<String> details = new ArrayList<>(result.violations());
             details.addAll(result.missingSlots());

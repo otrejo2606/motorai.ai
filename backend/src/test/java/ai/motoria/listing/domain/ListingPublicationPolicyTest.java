@@ -47,6 +47,25 @@ class ListingPublicationPolicyTest {
     }
 
     @Test
+    void photoToRepeatShouldBlockReview() {
+        ListingPublicationPolicy.Result result = ListingPublicationPolicy.evaluate(
+                true, true, 2, OwnershipMatch.MATCH, REQUIRED, REQUIRED, List.of("VIN"));
+
+        assertEquals(List.of(ListingPublicationPolicy.PHOTOS_TO_REPEAT), result.violations());
+        assertEquals(List.of("VIN"), result.slotsToRepeat());
+        assertTrue(result.missingSlots().isEmpty());
+    }
+
+    @Test
+    void noPhotoToRepeatShouldKeepThePreviousRules() {
+        ListingPublicationPolicy.Result result = ListingPublicationPolicy.evaluate(
+                true, true, 2, OwnershipMatch.MATCH, REQUIRED, REQUIRED, List.of());
+
+        assertTrue(result.publishable());
+        assertTrue(result.slotsToRepeat().isEmpty());
+    }
+
+    @Test
     void emptyTitleShouldBlockReview() {
         ListingPublicationPolicy.Result result = ListingPublicationPolicy.evaluate(
                 false, true, 2, OwnershipMatch.MATCH, REQUIRED, REQUIRED);

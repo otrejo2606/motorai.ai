@@ -7,6 +7,7 @@ import ai.motoria.common.persistence.UniqueViolations;
 import ai.motoria.common.port.MediaPort;
 import ai.motoria.common.port.MediaReadUrl;
 import ai.motoria.common.port.MediaSnapshot;
+import ai.motoria.common.port.PhotoAngleCheckResult;
 import ai.motoria.common.port.PhotoSlotSnapshot;
 import ai.motoria.media.domain.MediaKind;
 import ai.motoria.media.domain.MediaObject;
@@ -56,6 +57,9 @@ public class MediaPortAdapter implements MediaPort {
 
     @Inject
     MediaMapper mediaMapper;
+
+    @Inject
+    PhotoAngleCheckService photoAngleCheckService;
 
     @ConfigProperty(name = "motoria.media.pdf.max-pages", defaultValue = "10")
     int maxPdfPages;
@@ -131,6 +135,14 @@ public class MediaPortAdapter implements MediaPort {
         MediaObject media = findConfirmed(mediaId);
         PresignedUrl presigned = mediaAccessService.presignAndLog(media, purpose);
         return new MediaReadUrl(media.getId(), presigned.url(), presigned.expiresAt());
+    }
+
+    /**
+     * Not transactional: the classifier call must run without a database transaction (add-captura-guiada-fotos).
+     */
+    @Override
+    public PhotoAngleCheckResult checkPhotoAngle(UUID mediaId, String expectedSlot) {
+        return photoAngleCheckService.check(mediaId, expectedSlot);
     }
 
     private MediaObject findConfirmed(UUID mediaId) {

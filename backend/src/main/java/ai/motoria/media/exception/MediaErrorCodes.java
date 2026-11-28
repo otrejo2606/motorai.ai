@@ -26,6 +26,11 @@ public final class MediaErrorCodes {
     public static final String MEDIA_PAGES_IN_PROGRESS = "MEDIA_PAGES_IN_PROGRESS";
     public static final String STORAGE_NOT_CONFIGURED = "STORAGE_NOT_CONFIGURED";
     public static final String STORAGE_UNAVAILABLE = "STORAGE_UNAVAILABLE";
+    /** Angle classifier (add-captura-guiada-fotos): stored as the reason of an UNAVAILABLE check, never an HTTP error. */
+    public static final String PHOTO_CLASSIFIER_NOT_CONFIGURED = "PHOTO_CLASSIFIER_NOT_CONFIGURED";
+    public static final String PHOTO_CLASSIFIER_UNAVAILABLE = "PHOTO_CLASSIFIER_UNAVAILABLE";
+    public static final String PHOTO_CLASSIFIER_INVALID_RESPONSE = "PHOTO_CLASSIFIER_INVALID_RESPONSE";
+    public static final String PHOTO_CLASSIFIER_IMAGE_UNREADABLE = "PHOTO_CLASSIFIER_IMAGE_UNREADABLE";
 
     private MediaErrorCodes() {
     }

@@ -35,3 +35,21 @@ export const appConfig = {
 } as const;
 
 export const SELLER_ROLES = ['SELLER', 'DEALER', 'ADMIN'];
+
+/**
+ * Captura guiada de fotos (add-captura-guiada-fotos, design D8 y D9). MediaPipe se carga desde un CDN con version fija;
+ * VITE_MEDIAPIPE_BASE_URL vacia apaga la deteccion en el dispositivo (queda la silueta con captura manual). La CSP del
+ * portal debe permitir estas URL (script-src, connect-src y wasm-unsafe-eval); ver design D10.
+ */
+const DEFAULT_MEDIAPIPE_BASE_URL = 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14';
+const DEFAULT_MEDIAPIPE_MODEL_URL =
+  'https://storage.googleapis.com/mediapipe-models/object_detector/efficientdet_lite0/float16/1/efficientdet_lite0.tflite';
+
+export const captureConfig = {
+  mediaPipe: {
+    baseUrl: env.VITE_MEDIAPIPE_BASE_URL ?? DEFAULT_MEDIAPIPE_BASE_URL,
+    modelUrl: env.VITE_MEDIAPIPE_MODEL_URL ?? DEFAULT_MEDIAPIPE_MODEL_URL,
+  },
+  /** La realidad aumentada (WebXR immersive-ar) solo se ofrece con esta bandera y si el navegador la soporta. */
+  arEnabled: env.VITE_AR_ENABLED === 'true',
+} as const;

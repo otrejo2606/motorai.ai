@@ -8,6 +8,7 @@ import ai.motoria.listing.dto.ListingResponse;
 import ai.motoria.listing.dto.ListingSummaryResponse;
 import ai.motoria.listing.dto.ListingVehicleAttributeResponse;
 import ai.motoria.listing.dto.ListingVehicleResponse;
+import ai.motoria.listing.dto.PhotoReviewItemResponse;
 import org.mapstruct.Mapper;
 
 import java.util.Comparator;
@@ -25,7 +26,28 @@ public interface ListingMapper {
     Set<String> PUBLIC_ATTRIBUTES = Set.of(
             "BRAND", "MODEL", "STYLE", "YEAR", "COLOR", "DISPLACEMENT_CC", "FUEL", "DRIVETRAIN", "DOORS", "CAPACITY");
 
-    ListingPhotoResponse toPhotoResponse(ListingPhoto photo);
+    /**
+     * @param privileged owner or backoffice: includes the angle check, the reading anomaly and the analyst decision
+     *                   (add-captura-guiada-fotos); public viewers only get the slot and the public copy
+     */
+    default ListingPhotoResponse toPhotoResponse(ListingPhoto photo, boolean privileged) {
+        if (!privileged) {
+            return new ListingPhotoResponse(photo.getSlot(), photo.getMediaId(), photo.getPublicUrl(),
+                    null, null, null, false, null, null, null, null);
+        }
+        return new ListingPhotoResponse(
+                photo.getSlot(),
+                photo.getMediaId(),
+                photo.getPublicUrl(),
+                photo.getAngleStatus(),
+                photo.getDetectedSlot(),
+                photo.getAngleConfidence(),
+                photo.mustBeRepeated(),
+                photo.repeatReason(),
+                photo.getReadingAnomaly(),
+                photo.getReviewDecision(),
+                photo.getAngleCheckedAt());
+    }
 
     /**
      * @param privileged owner or backoffice: includes seller id, price recommendation and private registry attributes
@@ -57,11 +79,38 @@ public interface ListingMapper {
                 vehicle == null ? null : toVehicleResponse(vehicle, privileged),
                 listing.getPhotos().stream()
                         .sorted(Comparator.comparing(ListingPhoto::getSlot))
-                        .map(this::toPhotoResponse)
+                        .map(photo -> toPhotoResponse(photo, privileged))
                         .toList(),
                 listing.getPublishedAt(),
                 listing.getCreatedAt(),
                 listing.getUpdatedAt());
+    }
+
+    /**
+     * Item of the analyst tray of the angle check (add-captura-guiada-fotos).
+     */
+    default PhotoReviewItemResponse toReviewItem(ListingPhoto photo) {
+        Listing listing = photo.getListing();
+        return new PhotoReviewItemResponse(
+                listing.getId(),
+                listing.getStatus(),
+                listing.getVehicleId(),
+                listing.getMileage(),
+                photo.getSlot(),
+                photo.getMediaId(),
+                photo.getPublicUrl(),
+                photo.getAngleStatus(),
+                photo.getDetectedSlot(),
+                photo.getAngleConfidence(),
+                photo.getAngleReason(),
+                photo.getAngleModelVersion(),
+                photo.getReadVin(),
+                photo.getReadOdometerKm(),
+                photo.getReadingAnomaly(),
+                photo.getReviewDecision(),
+                photo.getReviewReason(),
+                photo.getAngleCheckedAt(),
+                photo.getUpdatedAt());
     }
 
     default ListingVehicleResponse toVehicleResponse(VehicleSnapshot vehicle, boolean privileged) {

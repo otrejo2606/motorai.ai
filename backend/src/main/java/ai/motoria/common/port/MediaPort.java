@@ -22,4 +22,12 @@ public interface MediaPort {
     List<UUID> ensurePdfPageImages(UUID pdfMediaId);
 
     MediaReadUrl createReadUrl(UUID mediaId, String purpose);
+
+    /**
+     * Checks with the local classifier that a confirmed listing photo shows the expected protocol slot
+     * (add-captura-guiada-fotos). Never throws for a classifier failure: the result is UNAVAILABLE. Must be called
+     * outside a database transaction: the image is read in its own short transaction and the classifier call runs
+     * without one.
+     */
+    PhotoAngleCheckResult checkPhotoAngle(UUID mediaId, String expectedSlot);
 }
