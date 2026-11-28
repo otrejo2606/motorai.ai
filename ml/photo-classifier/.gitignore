@@ -1,0 +1,13 @@
+# Nunca se versionan fotos, datasets, pesos, modelos exportados ni reportes con rutas de datos.
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+runs/
+reports/
+models/
+datasets/
+data/
+*.pt
+*.onnx
+deploy/photo-classifier.env

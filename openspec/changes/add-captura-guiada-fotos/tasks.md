@@ -11,8 +11,11 @@ Rutas de evidencia relativas a `backend/src/main/java/ai/motoria/` (código), `b
   - etiquetado (toma declarada más revisión humana) y conjunto dorado separado por vehículo;
   - métricas mínimas acordadas (exactitud por toma, falsos `MISMATCH`, latencia p95) y ajuste de `accept-threshold` y `reject-threshold`;
   - exportación (ONNX) y servicio de inferencia con el contrato de design D3, en la VM de IA por WireGuard;
-  - configurar `MOTORIA_PHOTO_CLASSIFIER_PROVIDER=http` y `MOTORIA_PHOTO_CLASSIFIER_URL`. Hasta entonces se usa el `stub`, que siempre responde la toma esperada.
+  - configurar `MOTORIA_PHOTO_CLASSIFIER_PROVIDER=http` y `MOTORIA_PHOTO_CLASSIFIER_URL`. Hasta entonces se usa el `stub`, que siempre responde la toma esperada;
+  - el servicio de inferencia y los scripts de entrenamiento están escritos en `add-clasificador-fotos-yolo` (`ml/photo-classifier/`), sin entrenar ni desplegar: sus puertas 0.1 a 0.3 cierran esta.
 - [ ] 0.2 (B) Licencia: Ultralytics es AGPL-3.0. Decidir entre publicar el código del servicio de inferencia, comprar la licencia Enterprise o usar una alternativa permisiva (timm o torchvision, YOLOX, RT-DETR) (design D11).
+  - **Decidido el 2026-11-27:** durante el desarrollo se usa Ultralytics YOLO con la licencia gratuita AGPL-3.0. Mientras rija, el código del servicio de inferencia (`ml/photo-classifier/`) debe estar disponible para quien interactúe con él por red (`ml/photo-classifier/LICENSE-NOTICE.md`; design D2 de `add-clasificador-fotos-yolo`).
+  - **Sigue abierta:** la licencia Enterprise de Ultralytics se negociará y firmará antes del lanzamiento (puerta 0.4 de `add-clasificador-fotos-yolo`).
 - [ ] 0.3 (B) OCR del VIN y del odómetro (detector de la región más OCR) en el mismo servicio. Sin él, `vin` y `odometerKm` llegan nulos y la comparación de design D6 no actúa.
 - [ ] 0.4 (B) CSP y Permissions-Policy del servidor que entrega el portal (no está en el repositorio): `camera` y `xr-spatial-tracking` para el propio origen, `script-src` y `connect-src` del CDN de MediaPipe y del modelo, `wasm-unsafe-eval`, o alojar MediaPipe en el mismo origen (design D10).
 - [ ] 0.5 (B) Prueba en dispositivos reales: iPhone con Safari (sin RA, cámara y silueta), Android de gama media con Chrome (MediaPipe y RA con `VITE_AR_ENABLED=true`), permiso negado, sin cámara y conexión lenta.

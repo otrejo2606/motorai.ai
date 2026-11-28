@@ -1,0 +1,10 @@
+# Entrenamiento, evaluación y exportación (máquina con GPU o CPU).
+# torch y torchvision fijados en la versión revisada con ultralytics 8.3.100; en una máquina con GPU
+# instalar antes la variante de torch 2.6.0 que corresponda a su CUDA (ver README).
+# Ultralytics es AGPL-3.0: ver LICENSE-NOTICE.md.
+torch==2.6.0
+torchvision==0.21.0
+pillow==11.1.0
+ultralytics==8.3.100
+onnx==1.17.0
+onnxruntime==1.20.1

@@ -1,0 +1,46 @@
+# Servicio de inferencia en la VM de IA (puerta 0.3 de add-clasificador-fotos-yolo).
+#
+# La VM de IA y producción están en tenancies distintos y se unen por WireGuard (10.90.0.0/24).
+# El puerto se publica SOLO en la dirección de la VM dentro del túnel (WG_BIND_ADDRESS), nunca en la
+# interfaz pública. El firewall de la VM debe aceptar el puerto solo desde la dirección de producción
+# en el túnel.
+#
+# Uso, en la VM, desde esta carpeta:
+#   cp photo-classifier.env.example photo-classifier.env   (y completar los valores)
+#   docker compose --env-file photo-classifier.env up -d --build
+#
+# En el backend (producción):
+#   MOTORIA_PHOTO_CLASSIFIER_PROVIDER=http
+#   MOTORIA_PHOTO_CLASSIFIER_URL=http://<WG_BIND_ADDRESS>:8080/v1/classify
+#   MOTORIA_PHOTO_CLASSIFIER_TOKEN=<el mismo CLASSIFIER_TOKEN, si se configuró>
+name: motoria-photo-classifier
+
+services:
+  photo-classifier:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    image: motoria/photo-classifier:${CLASSIFIER_IMAGE_TAG:?set CLASSIFIER_IMAGE_TAG}
+    restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    cpus: "${CLASSIFIER_CPUS:-2}"
+    mem_limit: ${CLASSIFIER_MEMORY:-2g}
+    environment:
+      MODEL_PATH: /models/${MODEL_FILE:?set MODEL_FILE}
+      MODEL_VERSION: ${MODEL_VERSION:?set MODEL_VERSION}
+      CLASSIFIER_TOKEN: ${CLASSIFIER_TOKEN:-}
+      TOP_K: ${TOP_K:-5}
+      IMAGE_SIZE: ${IMAGE_SIZE:-224}
+      MAX_BODY_BYTES: ${MAX_BODY_BYTES:-8388608}
+      MAX_IMAGE_PIXELS: ${MAX_IMAGE_PIXELS:-16777216}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    volumes:
+      - ${MODELS_DIR:?set MODELS_DIR}:/models:ro
+    ports:
+      - "${WG_BIND_ADDRESS:?set WG_BIND_ADDRESS to the VM address on the WireGuard tunnel}:8080:8080"
